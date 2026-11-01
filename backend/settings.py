@@ -1,5 +1,5 @@
 """Configuration is offline by default. A key alone never enables paid requests."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import hashlib
 import json
 import os
@@ -11,12 +11,12 @@ ROOT = Path(__file__).resolve().parents[1]
 @dataclass(frozen=True)
 class Settings:
     allow_remote: bool = False
-    api_key: str = ""
+    api_key: str = field(default="", repr=False)
     model: str = "deepseek-chat"
     data_dir: Path = ROOT / ".runtime"
     allow_search: bool = False
     search_provider: str = "brave"
-    search_key: str = ""
+    search_key: str = field(default="", repr=False)
 
     @classmethod
     def load(cls):

@@ -178,12 +178,14 @@ class EvidenceTests(unittest.TestCase):
             self.assertEqual(answerer.remote_calls, 0)
 
     def test_received_key_fingerprint_is_blocked_even_if_opted_in(self):
+        from backend.schools import load_schools
+        school = load_schools()["hnvust"]
         synthetic_key = "synthetic-received-key"
         fingerprint = hashlib.sha256(synthetic_key.encode()).hexdigest()
         with patch("backend.settings.json.loads", return_value=[fingerprint]), patch("urllib.request.urlopen") as remote:
             settings = Settings(allow_remote=True, api_key=synthetic_key)
             self.assertFalse(settings.remote_enabled())
-            answerer = Answerer(self.retriever, settings)
+            answerer = Answerer(self.retriever, settings, school)
             prepared = answerer.prepare("学费怎么交", [])
             answerer.generate("学费怎么交", prepared)
             remote.assert_not_called()
@@ -301,7 +303,7 @@ class PreparationHTTPTests(HTTPFixture, unittest.TestCase):
         self.assertEqual(self.app.stats()["remote_calls"], 0)
 
     def test_preview_does_not_write_and_restore_preserves_checklist(self):
-        session = "prep-http-00000002"; value = prep_backup(default_preparation())
+        session = "prep-http-00000002"; value = {**prep_backup(default_preparation()), "school_id": "hnvust"}
         self.app.store.check(session, "identity", True)
         self.assertEqual(self.request("POST", "/api/preparation/preview", {"session": session, "backup": value})[0], 200)
         self.assertEqual(self.app.store.preparation(session)["revision"], 0)
@@ -624,7 +626,7 @@ class PlannerHTTPTests(HTTPFixture, unittest.TestCase):
     def test_multibyte_full_backup_roundtrips(self):
         session = "planner-session-00007"
         tasks = [{"title": str(i) + "😀" * 97, "notes": "😀" * 600} for i in range(100)]
-        value = backup(tasks)
+        value = {**backup(tasks), "school_id": "hnvust"}
         size = len(json.dumps(value, ensure_ascii=False).encode("utf-8"))
         self.assertGreater(size, 250000); self.assertLess(size, 500000)
         status, _, body = self.request("POST", "/api/tasks/import", {"session": session, "backup": value})

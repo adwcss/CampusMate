@@ -156,6 +156,7 @@ const Appearance = (() => {
     return mascotReady;
   }
   function startIntro(force=false) {
+    if (typeof selectedSchoolId !== "undefined" && selectedSchoolId !== "hnvust") return;
     if(query("#intro-dialog").open) return;
     let seen=false;try { seen=sessionStorage.getItem(SEEN)==="1"; } catch { /* Use one bounded entrance when storage is unavailable. */ }
     if(!force&&(reduced.matches||seen)) return;

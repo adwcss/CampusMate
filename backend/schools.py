@@ -20,6 +20,23 @@ def load_schools():
             raise ValueError("官方域名配置无效")
         if value.get("legacy_content") and identity != DEFAULT_SCHOOL:
             raise ValueError("交接学校资料仅可用于hnvust")
+        if type(value.get("legacy_content", False)) is not bool:
+            raise ValueError("legacy_content必须为布尔值")
+        places = value.get("places", [])
+        if not isinstance(places, list) or len(places) > 100:
+            raise ValueError("学校地点列表无效")
+        seen = set()
+        for place in places:
+            if not isinstance(place, dict) or any(not isinstance(place.get(k), str) or not place[k].strip() for k in ("id", "name", "category", "question", "note")):
+                raise ValueError("地点缺少标识、名称、分类、问题或来源说明")
+            if place["id"] in seen or any(type(place.get(k)) not in (int, float) or not 0 <= place[k] <= 100 for k in ("x", "y")):
+                raise ValueError("地点标识重复或坐标超出范围")
+            seen.add(place["id"])
+        for field in ("short_name", "status", "map_notice", "official_home"):
+            if not isinstance(value.get(field), str):
+                raise ValueError("学校配置缺少显示字段")
+        if value["official_home"] and not official_url(value["official_home"], value):
+            raise ValueError("学校官网必须位于配置的HTTPS官方域名")
         result[identity] = value
     if DEFAULT_SCHOOL not in result:
         raise ValueError("缺少默认学校配置")

@@ -11,12 +11,13 @@ def render_map(school):
              '<rect x="4" y="4" width="920" height="1112" rx="38" fill="url(#lawn)" stroke="#a8c4b7" stroke-width="4"/>',
              f'<text x="42" y="52" font-family="sans-serif" font-size="24" fill="#244c64">{title}</text>',
              '<text x="42" y="84" font-family="sans-serif" font-size="16" fill="#49615c">非官方地图 · 非实测比例 · 装饰线不代表可通行道路</text>']
-    if school.get("legacy_content"):
+    places = school.get("places", PLACES if school.get("legacy_content") else [])
+    if places:
         parts += ['<path d="M440 130V1000M70 570H850" stroke="#fff" stroke-width="30" fill="none"/>',
                   '<ellipse cx="743" cy="860" rx="95" ry="130" fill="#b8dce6" stroke="#8dbfce" stroke-width="4"/>',
                   '<ellipse cx="745" cy="862" rx="65" ry="100" fill="none" stroke="#ecf6fa" stroke-width="3"/>']
         colors = {"宿舍区": "#e8b89e", "教学与办公区": "#8eb9d5", "餐饮与服务区": "#e8cb7e", "场馆与活动区": "#a4c7a4"}
-        for place in PLACES:
+        for place in places:
             x, y = place["x"] * 9.28, place["y"] * 11.2
             color = colors.get(place["category"], "#b4b8d5")
             parts.append(f'<g><title>{escape(place["name"])}（交接坐标示意，待实地核验）</title><rect x="{x-24}" y="{y-12}" width="48" height="32" rx="5" fill="#547386" opacity=".16"/><rect x="{x-24}" y="{y-20}" width="48" height="30" rx="4" fill="{color}" stroke="#71858a"/><rect x="{x-20}" y="{y-16}" width="40" height="22" fill="url(#roof)"/></g>')

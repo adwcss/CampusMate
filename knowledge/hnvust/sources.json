@@ -1,0 +1,35 @@
+{
+  "school_id": "hnvust",
+  "sources": [
+    {
+      "title": "河南科技职业大学2026年招生章程",
+      "url": "https://www.hnvust.cn/info/1036/3851.htm",
+      "published_at": "2026-05-18",
+      "verified_at": "2026-11-01",
+      "downloaded_at": null,
+      "file": null,
+      "sha256": null,
+      "effective_year": 2026,
+      "status": "verified_url_pending_download",
+      "caveat": "官网网页已核实；下载被当前环境网络权限及自动审批规则阻断。招生章程不是新生报到须知。"
+    },
+    {
+      "title": "2026级新生入学须知（待补充，非实际文件标题）",
+      "url": null,
+      "published_at": null,
+      "downloaded_at": null,
+      "file": null,
+      "sha256": null,
+      "status": "pending_verification"
+    },
+    {
+      "title": "经学校核实的校园地图（待补充，非实际文件标题）",
+      "url": null,
+      "published_at": null,
+      "downloaded_at": null,
+      "file": null,
+      "sha256": null,
+      "status": "pending_verification"
+    }
+  ]
+}

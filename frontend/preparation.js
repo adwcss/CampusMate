@@ -78,7 +78,7 @@ function renderPreparation() {
   const link=element("a","inline-link","查看完整报到清单");link.href="/?view=checklist";checks.append(link);root.append(checks);
   const review=element("section");review.append(element("h3","",`已练场景有 ${audit.review_cases.length} 项待复习`),element("p","","未练习的场景不计为已了解。"));const learn=element("a","inline-link","回到情景演练");learn.href="/?view=arrival";review.append(learn);root.append(review);
 }
-async function prepMemo(){const response=await fetch(`/api/preparation/memo.txt?session=${state.session}`);if(!response.ok)throw new Error("备忘卡导出未完成，请重试。");return response.text();}
+async function prepMemo(){const response=await schoolFetch(`/api/preparation/memo.txt?session=${state.session}`);if(!response.ok)throw new Error("备忘卡导出未完成，请重试。");return response.text();}
 async function initializePreparation(){
   preparation=await api(`/api/preparation?session=${state.session}`);preparationReady=true;
   for(const [value,title]of Object.entries(preparation.modes)){const option=element("option","",title);option.value=value;$("#prep-mode").append(option);}

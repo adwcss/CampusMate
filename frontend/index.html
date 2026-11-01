@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/preparation.css">
   <link rel="stylesheet" href="/appearance.css">
+  <link rel="stylesheet" href="/campusmate.css">
+  <script src="/campusmate.js" defer></script>
   <script src="/appearance.js" defer></script>
   <script src="/decision.js" defer></script>
   <script src="/planner.js" defer></script>
@@ -57,10 +59,11 @@
     <a href="/?view=sources" data-view="sources"><span aria-hidden="true">▤</span>资料来源</a>
   </nav>
   <div class="sidebar-note"><span class="status-dot" aria-hidden="true"></span><strong id="mode-label">正在连接资料库…</strong><p id="mode-detail">回答会附上资料与适用范围。</p></div>
-  <div class="sidebar-footer"><button id="theme-toggle" class="text-button" aria-haspopup="dialog" aria-controls="appearance-dialog">外观与背景</button><a href="https://www.hnvust.cn/" target="_blank" rel="noopener noreferrer">学校官网</a><small>独立开发作品，非学校官方服务</small></div>
+  <div class="sidebar-footer"><button id="theme-toggle" class="text-button" aria-haspopup="dialog" aria-controls="appearance-dialog">外观与背景</button><a id="school-home" href="https://www.hnvust.cn/" target="_blank" rel="noopener noreferrer">学校官网</a><small>独立开发作品，非学校官方服务</small></div>
 </aside>
 <div class="workspace">
-  <header class="topbar"><span>河南科技职业大学</span><div><span id="knowledge-meta">正在读取资料…</span><button class="text-button" id="appearance-open" aria-haspopup="dialog" aria-controls="appearance-dialog">外观</button><button class="text-button" id="export">导出我的记录</button></div></header>
+  <header class="topbar"><label class="school-picker" for="school-select">当前学校<select id="school-select" aria-label="选择学校"><option value="hnvust">河南科技职业大学</option></select></label><div><span id="knowledge-meta">正在读取资料…</span><button class="text-button" id="appearance-open" aria-haspopup="dialog" aria-controls="appearance-dialog">外观</button><button class="text-button" id="export">导出我的记录</button></div></header>
+  <p id="school-status" class="school-status" role="status">正在读取学校配置…</p>
   <main id="main" tabindex="-1">
     <div id="global-error" class="error-banner" role="alert" hidden></div>
     <section id="view-arrival" class="view" hidden>
@@ -83,7 +86,7 @@
         <aside class="arrival-tools" aria-label="准备与校园探索">
           <h2>从了解，到行动。</h2><p>练习之后，亲自核对准备项；到校之后，认识自己会用到的地方。</p>
           <section><h3>出发准备</h3><p id="arrival-readiness">正在读取准备进度…</p><a class="inline-link" href="/?view=checklist">打开我的报到清单</a><small>勾选由你确认。答对场景不会自动完成准备项。</small></section>
-          <section class="arrival-explore"><img src="/school-map.jpg" width="928" height="1120" alt="校园交接示意地图缩略图"><h3>规划一次校园探索</h3><p id="arrival-route-status">先选一条参考行程，再按自己的需要调整。</p><a class="secondary" href="/?view=map">编排我的探索行程</a><small>按自己的顺序认识地点，通行与开放情况以现场为准。</small></section>
+          <section class="arrival-explore"><img data-campus-map src="/campus-map.svg?school_id=hnvust" width="928" height="1120" alt="校园交接示意地图缩略图"><h3>规划一次校园探索</h3><p id="arrival-route-status">先选一条参考行程，再按自己的需要调整。</p><a class="secondary" href="/?view=map">编排我的探索行程</a><small>按自己的顺序认识地点，通行与开放情况以现场为准。</small></section>
           <p class="decision-category">场景由现有资料整理，包含历史参考和通用建议，不代替学校当年通知。</p>
         </aside>
       </div>
@@ -115,7 +118,7 @@
         <div class="chat-main">
           <section class="question-starters" aria-label="常见问题"><div class="section-label"><h2>大家都在问</h2><span>选择一个问题开始</span></div><div id="faq-tabs" class="segmented"></div><div id="faq-questions" class="faq-grid"></div></section>
           <section id="conversation" class="conversation" aria-label="对话记录"><div class="welcome" id="chat-welcome"><span class="welcome-symbol" aria-hidden="true">问</span><h2>你的第一站，资料先行。</h2><p>可以直接提问，也可以从上面的常见问题开始。<br>回答里的编号对应资料原文，历史安排会特别提醒。</p></div></section>
-          <form id="question-form" class="composer"><label for="question">想了解什么？</label><div class="input-row"><textarea id="question" name="question" rows="2" maxlength="500" autocomplete="off" placeholder="例如：报到要带什么材料？…" required></textarea><button id="send" class="primary" type="submit">发送问题 <span aria-hidden="true">↑</span></button></div><div class="composer-foot"><span>Enter 发送，Shift + Enter 换行</span><span id="request-status" role="status" aria-live="polite">每次回答都有资料可查</span></div></form>
+          <div class="retrieval-choice"><label for="retrieval-mode">资料检索</label><select id="retrieval-mode"><option value="local">本地知识库</option><option value="enhanced">联网增强（本地＋互联网）</option></select><small>联网只发送公开主题词至已配置的搜索服务；不发送完整问题。摘要需核对原文。</small></div><form id="question-form" class="composer"><label for="question">想了解什么？</label><div class="input-row"><textarea id="question" name="question" rows="2" maxlength="500" autocomplete="off" placeholder="例如：报到要带什么材料？…" required></textarea><button id="send" class="primary" type="submit">发送问题 <span aria-hidden="true">↑</span></button></div><div class="composer-foot"><span>Enter 发送，Shift + Enter 换行</span><span id="request-status" role="status" aria-live="polite">每次回答都有资料可查</span></div></form>
         </div>
         <aside class="arrival-aside"><a class="inline-link" href="/?view=plan">规划宿舍、社团与竞赛</a><div class="arrival-title"><span aria-hidden="true">⌂</span><h2>把报到这件事理顺</h2></div><p>具体日期与办理位置，请核对当年官方通知。</p><ol id="arrival-route" class="route-list"></ol><div class="mini-checklist"><h3>出发前，准备好了多少？</h3><div class="progress-track"><span id="mini-progress"></span></div><p id="mini-progress-label">正在读取清单…</p><a class="inline-link" href="/?view=checklist">打开我的报到清单</a></div><div class="contact-note"><h3>需要人工确认？</h3><p>学校官网咨询电话</p><a href="tel:03948511111">0394-8511111</a><a href="tel:03948385111">0394-8385111</a><small>来源：学校官网首页</small></div></aside>
       </div>
@@ -123,6 +126,7 @@
     <section id="view-tasks" class="view" hidden>
       <div class="page-heading"><div><h1>把下一步，放进日程。</h1><p>记录自己的计划，按时了解、尝试和复盘。</p></div><button id="new-task" class="primary">新增任务</button></div>
       <p class="notice">这里的日期由你填写，是个人计划。不会报名、预订或自动确认官方截止时间；提醒只在本页展示。</p>
+      <form id="arrival-personalize" class="arrival-personalize"><h2>生成我的报到准备任务</h2><p>按自己的情况选几项，先预览再加入待办。这是个人建议，非学校规定；不填写证件、家庭证明等敏感材料。</p><div class="arrival-options"><label>个人计划日期<input type="date" name="arrival_date" min="2000-01-01" max="2099-12-31"></label><label><input type="checkbox" name="live_on_campus">计划住校</label><label><input type="checkbox" name="need_aid">希望了解资助</label><label><input type="checkbox" name="long_distance">跨城出行</label></div><button class="secondary" type="submit">预览建议任务</button> <button class="primary" type="button" id="arrival-apply" disabled>加入我的待办</button><ul id="arrival-preview"></ul><p id="arrival-generator-status" role="status" aria-live="polite"></p></form>
       <div id="task-summary" class="planner-summary" role="status" aria-live="polite"></div>
       <div class="planner-layout">
         <div class="planner-main">
@@ -143,9 +147,9 @@
     </section>
     <section id="view-map" class="view" hidden>
       <div class="page-heading"><div><h1>把想去的地方，串成一次探索。</h1><p>点选地点加入行程，调整顺序，记录自己已经认识的地方。</p></div></div>
-      <div class="notice">交接地图为示意图。热点是图上位置，不是实时导航；建筑与开放情况以现场为准。</div>
+      <div id="map-notice" class="notice">二维插画为示意，非官方地图、非实测比例，不提供道路导航。</div>
       <details id="itinerary-panel" class="itinerary-panel" open><summary>我的探索行程 <span id="itinerary-count">正在读取…</span></summary><p class="decision-category">连线只表示先后顺序，不是实际道路或最短路线。勾选到访不代表定位验证。</p><div id="itinerary-presets" class="itinerary-presets" aria-label="参考行程"></div><form id="itinerary-add"><label for="itinerary-place">从地图地点添加<select id="itinerary-place" name="itinerary-place"></select></label><button type="submit" class="secondary">加入行程</button></form><ol id="itinerary-list" class="itinerary-list"></ol><div class="itinerary-footer"><button id="route-only" class="secondary" aria-pressed="false">仅显示行程地点</button><button id="export-itinerary" class="secondary">导出行程</button><button id="clear-itinerary" class="text-button">清空</button></div><p id="itinerary-status" class="form-status" role="status" aria-live="polite">行程保存在本机当前会话中。</p></details>
-      <div class="map-search-controls"><label for="map-search">找地点<input id="map-search" name="map-search" type="search" autocomplete="off" placeholder="例如：图书馆、餐厅…"></label><label for="map-category">区域<select id="map-category" name="map-category"></select></label><span id="map-results" role="status" aria-live="polite"></span></div><div class="map-layout"><div><div class="map-toolbar"><h2>校园地图</h2><div><button id="zoom-out" class="secondary" aria-label="缩小地图">−</button><span id="zoom-label">100%</span><button id="zoom-in" class="secondary" aria-label="放大地图">＋</button><button id="zoom-reset" class="secondary">还原</button><button id="map-full" class="secondary">完整大图</button></div></div><div class="map-viewport"><div class="map-canvas" id="map-canvas"><img src="/school-map.jpg" width="928" height="1120" alt="学校地图，标注宿舍区、教学与办公区、餐饮与服务区、场馆与活动区及其他地标。地图为示意，位置以实地为准。" id="campus-image"><div id="map-pins"></div></div></div></div><aside class="map-detail"><h2>想去哪里？</h2><div id="place-list" class="place-list"></div><div id="place-detail" class="place-detail"></div></aside></div>
+      <div class="map-search-controls"><label for="map-search">找地点<input id="map-search" name="map-search" type="search" autocomplete="off" placeholder="例如：图书馆、餐厅…"></label><label for="map-category">区域<select id="map-category" name="map-category"></select></label><span id="map-results" role="status" aria-live="polite"></span></div><div class="map-layout"><div><div class="map-toolbar"><h2>校园地图</h2><div><button id="zoom-out" class="secondary" aria-label="缩小地图">−</button><span id="zoom-label">100%</span><button id="zoom-in" class="secondary" aria-label="放大地图">＋</button><button id="zoom-reset" class="secondary">还原</button><button id="map-full" class="secondary">完整大图</button></div></div><div class="map-viewport"><div class="map-canvas" id="map-canvas"><img data-campus-map src="/campus-map.svg?school_id=hnvust" width="928" height="1120" alt="学校地图，标注宿舍区、教学与办公区、餐饮与服务区、场馆与活动区及其他地标。地图为示意，位置以实地为准。" id="campus-image"><div id="map-pins"></div></div></div></div><aside class="map-detail"><h2>想去哪里？</h2><div id="place-list" class="place-list"></div><div id="place-detail" class="place-detail"></div></aside></div>
     </section>
     <section id="view-dorm" class="view" hidden>
       <div class="page-heading"><div><h1>先看看未来的小窝。</h1><p>了解不同位置的取舍，再保存床位偏好。</p></div></div>
@@ -241,7 +245,7 @@
 <div id="compare-bar" class="compare-bar" hidden><span id="compare-count" role="status" aria-live="polite"></span><div><button id="open-compare" class="primary">查看对比</button><button id="clear-compare" class="secondary">清空对比</button></div></div>
 <dialog id="comparison-dialog" class="comparison-dialog" aria-labelledby="comparison-title"><div class="map-toolbar"><h2 id="comparison-title">把选项放在一起看</h2><button id="close-comparison" class="secondary">关闭对比</button></div><p class="decision-category">仅对同类选项做资料对照。排序分和位置参考不代表概率或实测环境。</p><div id="comparison-body" class="comparison-scroll"></div></dialog>
 <dialog id="clear-dialog"><h2>清空当前对话？</h2><p>清空后无法恢复。报到清单会保留。</p><div class="dialog-actions"><button id="cancel-clear" class="secondary">保留对话</button><button id="confirm-clear" class="primary">清空对话</button></div></dialog>
-<dialog id="map-dialog" class="map-dialog"><div class="map-toolbar"><h2>校园地图完整图</h2><button id="close-map" class="secondary">关闭大图</button></div><img src="/school-map.jpg" width="928" height="1120" alt="学校地图完整示意图。地图为示意，位置以实地为准。" loading="lazy"></dialog>
+<dialog id="map-dialog" class="map-dialog"><div class="map-toolbar"><h2>校园地图完整图</h2><button id="close-map" class="secondary">关闭大图</button></div><img data-campus-map src="/campus-map.svg?school_id=hnvust" width="928" height="1120" alt="学校地图完整示意图。地图为示意，位置以实地为准。" loading="lazy"></dialog>
 <dialog id="bed-dialog" class="bed-dialog">
   <div class="map-toolbar"><h2 id="bed-dialog-title">床位详情</h2><button id="close-bed" class="secondary">关闭</button></div>
   <div id="bed-dialog-body"></div>

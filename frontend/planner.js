@@ -29,7 +29,7 @@ function readTaskFilters() {
 }
 function syncTaskUrl() {
   if (state.view !== "tasks") return;
-  const params = new URLSearchParams({view: "tasks"});
+  const params = new URLSearchParams({view: "tasks", school_id: selectedSchoolId});
   for (const [name, value] of [["progress", plannerFilters.progress], ["q", plannerFilters.query], ["priority", plannerFilters.priority], ["date", plannerFilters.date]]) {
     if (value && !(name === "progress" && value === "pending")) params.set(name, value);
   }
@@ -164,7 +164,7 @@ async function initializePlanner() {
   $("#task-date-filter").addEventListener("change", event => { plannerFilters.date = event.target.value; renderPlanner(); });
   $("#export-calendar").addEventListener("click", async () => {
     try {
-      const response = await fetch(`/api/tasks/calendar?session=${state.session}`);
+      const response = await schoolFetch(`/api/tasks/calendar?session=${state.session}`);
       if (!response.ok) throw new Error("日历导出未完成，请重试。");
       downloadPlan(await response.text(), "text/calendar;charset=utf-8", "初到-个人计划.ics"); toast("已导出个人计划日历");
     } catch (error) { toast(error.message); }

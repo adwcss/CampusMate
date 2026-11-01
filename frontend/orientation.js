@@ -9,8 +9,8 @@ function rehearsalSummary() {
 }
 function selectRehearsal(identifier, push = true) {
   rehearsalCase = orientation.cases.some(item => item.id === identifier) ? identifier : rehearsalSummary().next.id;
-  if (push) history.pushState(null, "", `/?view=arrival&case=${rehearsalCase}`);
-  else if (state.view === "arrival") history.replaceState(null, "", `/?view=arrival&case=${rehearsalCase}`);
+  if (push) history.pushState(null, "", `/?view=arrival&school_id=${selectedSchoolId}&case=${rehearsalCase}`);
+  else if (state.view === "arrival") history.replaceState(null, "", `/?view=arrival&school_id=${selectedSchoolId}&case=${rehearsalCase}`);
   renderRehearsal();
   if (push) $("#scenario-title").focus();
 }
@@ -166,7 +166,7 @@ async function initializeOrientation() {
   $("#clear-itinerary").addEventListener("click", () => { if (confirm("清空当前探索行程和到访勾选？演练与报到准备清单会保留。")) routeOperation({action: "clear"}); });
   $("#export-itinerary").addEventListener("click", async () => {
     try {
-      const response = await fetch(`/api/orientation/route.txt?session=${state.session}`);
+      const response = await schoolFetch(`/api/orientation/route.txt?session=${state.session}`);
       if (!response.ok) throw new Error("行程导出未成功，请重试。");
       downloadPlan(await response.text(), "text/plain;charset=utf-8", "初到-校园探索行程.txt"); toast("探索行程已导出");
     } catch (error) { $("#itinerary-status").textContent = error.message; }

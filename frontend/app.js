@@ -1,6 +1,6 @@
 "use strict";
 const $ = (selector) => document.querySelector(selector);
-const LABELS = {official_verified: "官方入口已核对", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考"};
+const LABELS = {official_verified: "已核实官方文件", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考", web_snippet: "官方域名搜索摘要 · 正文待核验"};
 const state = {catalog: null, sources: [], checked: {}, messages: [], busy: false, faq: 0, zoom: 1, mapCategory: "", mapQuery: "", session: "", view: "chat", explore: null, saved: [], profile: null, recommendations: null, recommendKind: "bed", compare: [], dorm: null, dormRoom: null, idealBeds: [], contest: null, contestCat: "", contestLevel: "", contestKw: "", club: null, clubCat: "", clubKw: "", union: null, unionCat: "", unionKw: ""};
 try {
   state.session = localStorage.getItem("freshman-session-v1") || crypto.randomUUID().replaceAll("-", "");
@@ -29,7 +29,7 @@ function toast(text) {
   toastTimer = setTimeout(() => { $("#toast").hidden = true; }, 3500);
 }
 async function api(path, options = {}) {
-  const response = await fetch(path, {headers: {"Content-Type": "application/json"}, ...options});
+  const response = await schoolFetch(path, {headers: {"Content-Type": "application/json"}, ...options});
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "请求失败，请重试。");
   return data;
@@ -38,6 +38,7 @@ function mutate(path, payload, method = "POST") {
   return api(path, {method, body: JSON.stringify({session: state.session, ...payload})});
 }
 function changeView(view, push = true) {
+  if (state.school && !state.school.legacy_content && !["chat", "tasks", "map", "sources", "checklist"].includes(view)) view = "chat";
   state.view = ["arrival", "preparation", "chat", "map", "plan", "tasks", "dorm", "dorm-bed", "contest", "club", "union", "checklist", "sources"].includes(view) ? view : "arrival";
   document.querySelectorAll(".view").forEach(node => { node.hidden = node.id !== `view-${state.view}`; });
   Appearance.showView(state.view);
@@ -47,10 +48,11 @@ function changeView(view, push = true) {
     if (active) node.setAttribute("aria-current", "page"); else node.removeAttribute("aria-current");
   });
   if (push) {
-    history.pushState(null, "", `/?view=${state.view}${state.view === "dorm-bed" && state.dormRoom ? `&room=${state.dormRoom}` : ""}`);
+    history.pushState(null, "", `/?view=${state.view}&school_id=${encodeURIComponent(selectedSchoolId)}${state.view === "dorm-bed" && state.dormRoom ? `&room=${state.dormRoom}` : ""}`);
     window.scrollTo({top:0, behavior:"instant"});
   }
   document.title = `${{arrival: "新生情景演练", chat: "新生问答", map: "校园探索行程", plan: "我的成长计划", tasks: "日程与任务", dorm: "宿舍选择", "dorm-bed": "床位选择", contest: "竞赛指南", club: "社团指南", union: "学生会", checklist: "报到清单", sources: "资料来源"}[state.view]} · 初到新生指南`;
+  document.title = document.title.replace("初到新生指南", `CampusMate · ${state.school?.short_name || "校园"}`);
   if (state.view === "arrival" && orientationReady) selectRehearsal(push ? rehearsalCase : new URLSearchParams(location.search).get("case"), false);
   if (state.view === "preparation") document.title = "出发准备台 · 初到新生指南";
   if (state.view === "map" && orientationReady) { if (!push) routeOnly = new URLSearchParams(location.search).get("route") === "1"; renderItinerary(); renderPlaces(); }
@@ -102,6 +104,7 @@ function citations(sources) {
     const summary = element("summary", "", `【${index + 1}】${source.source} · ${source.section}`);
     details.append(summary, element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, LABELS[source.source_type]));
     details.append(element("p", "", source.caveat));
+    if (source.published_at || source.evidence_origin === "search_api") details.append(element("p", "", `发布日期：${source.published_at || "来源未提供，待核实"}；检索时间：${source.retrieved_at || source.collected_at}`));
     if (source.effective_year) details.append(element("p", "", `适用参考年份：${source.effective_year}；采集日期：${source.collected_at}`));
     details.append(element("pre", "", source.text));
     for (const raw of source.urls || []) { const link = safeLink(raw); if (link) details.append(link); }
@@ -117,6 +120,13 @@ function messageNode(message) {
   if (message.role === "assistant") name.append(element("span", "badge", message.mode === "remote_llm" ? "AI 资料回答" : "本地资料回答"));
   const body = element("div", "message-body", message.content);
   content.append(name, body);
+  if (message.conflicts?.length) {
+    const box = element("div", "source-conflicts");
+    box.append(element("strong", "", "来源差异待核对"));
+    message.conflicts.forEach(conflict => box.append(element("p", "", conflict.message)));
+    content.append(box);
+  }
+  if (message.retrieval_mode === "enhanced") content.append(element("p", "badge", message.web_used ? "本地与联网并行检索 · 联网摘要正文待核验" : "已请求联网增强 · 本次使用本地资料"));
   if (message.sources?.length) content.append(citations(message.sources));
   if (message.check_links?.length) {
     const checks = element("details", "verification-links"); checks.append(element("summary", "", "核对最新公开通知"), element("p", "", "点击后打开外部网站。搜索只使用固定主题词，不发送完整问题；网页内容和当前安排需自行核对。"));
@@ -170,7 +180,7 @@ async function ask(question) {
   let text = "", pending = "", completed = false;
   let metadata = {};
   try {
-    const response = await fetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({session: state.session, question})});
+    const response = await schoolFetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({session: state.session, question, retrieval_mode: $("#retrieval-mode").value})});
     if (!response.ok) { const error = await response.json(); throw new Error(error.error || "提问失败，请重试。"); }
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
@@ -217,7 +227,7 @@ function updateProgress() {
   const completed = state.catalog.tasks.filter(task => state.checked[task.id]).length;
   $("#checklist-count").textContent = `${completed} / ${total}`;
   $("#nav-count").textContent = `${completed}/${total}`;
-  for (const id of ["#mini-progress", "#checklist-progress"]) $(id).style.width = `${completed / total * 100}%`;
+  for (const id of ["#mini-progress", "#checklist-progress"]) $(id).style.width = `${total ? completed / total * 100 : 0}%`;
   $("#mini-progress-label").textContent = `已完成 ${completed} 项，共 ${total} 项准备`;
   if (orientationReady) renderRehearsal();
 }
@@ -575,8 +585,10 @@ $("#union-search").addEventListener("input", event => { state.unionKw = event.ta
 
 async function boot() {
   const params = new URLSearchParams(location.search);
-  changeView(params.get("view"), false);
   try {
+    await initializeSchool();
+    changeView(params.get("view"), false);
+    if (!state.school.legacy_content) { await bootTemplate(); return; }
     const [stats, catalog, historyData, checklist, sources, dorm, contest, club, union, explore, saved, profile] = await Promise.all([
       api("/api/stats"), api("/api/catalog"), api(`/api/history?session=${state.session}`), api(`/api/checklist?session=${state.session}`), api("/api/sources"), api("/api/dorm"), api("/api/contest"), api("/api/club"), api("/api/studentorg"), api("/api/explore"), api(`/api/saved?session=${state.session}`), api(`/api/profile?session=${state.session}`)
     ]);

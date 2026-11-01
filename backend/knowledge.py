@@ -19,7 +19,10 @@ def school_chunks(school):
     manifest = directory / "sources.json"
     if not manifest.exists():
         return chunks
-    for source in json.loads(manifest.read_text(encoding="utf-8")).get("sources", []):
+    metadata = json.loads(manifest.read_text(encoding="utf-8"))
+    if metadata.get("school_id") != identity:
+        raise ValueError("知识来源清单学校标识不一致")
+    for source in metadata.get("sources", []):
         if source.get("status") != "verified_download":
             continue
         path = (directory / source["file"]).resolve()

@@ -38,6 +38,7 @@ class Application:
         self.registry = registry if registry is not None else load_schools()
         self.school = select_school(self.registry, school_id)
         self.school_id = school_id
+        self.places = self.school.get("places", PLACES if self.school.get("legacy_content") else [])
         self.contexts = contexts if contexts is not None else {}
         self.context_lock = threading.RLock()
         self.retriever = Retriever(ROOT, chunks=school_chunks(self.school))
@@ -164,7 +165,7 @@ def handler_for(application):
                 if url.path == "/api/schools":
                     return self.json({"schools": list(application.registry.values()), "default_school": DEFAULT_SCHOOL})
                 if url.path == "/api/map":
-                    return self.json({"places": PLACES if application.school.get("legacy_content") else [], "notice": application.school["map_notice"], "image": "/campus-map.svg?school_id=" + application.school_id})
+                    return self.json({"places": application.places, "notice": application.school["map_notice"], "image": "/campus-map.svg?school_id=" + application.school_id})
                 if url.path == "/campus-map.svg":
                     from .campusmap import render_map
                     body = render_map(application.school).encode("utf-8")
@@ -176,9 +177,9 @@ def handler_for(application):
                 if url.path == "/api/stats":
                     return self.json(application.stats())
                 if url.path == "/api/catalog":
-                    return self.json({"faqs": FAQS if application.school.get("legacy_content") else [{"category": "待补充资料", "questions": ["报到需要准备什么？"]}], "places": PLACES if application.school.get("legacy_content") else [], "route": ROUTE if application.school.get("legacy_content") else [], "tasks": TASKS if application.school.get("legacy_content") else []})
+                    return self.json({"faqs": FAQS if application.school.get("legacy_content") else [{"category": "待补充资料", "questions": ["报到需要准备什么？"]}], "places": application.places, "route": ROUTE if application.school.get("legacy_content") else [], "tasks": TASKS if application.school.get("legacy_content") else []})
                 if url.path == "/api/places":
-                    return self.json({"places": PLACES if application.school.get("legacy_content") else []})
+                    return self.json({"places": application.places})
                 if url.path == "/api/explore":
                     return self.json(application.experience.catalog())
                 if url.path in {"/api/orientation", "/api/orientation/route.txt"}:
@@ -247,6 +248,8 @@ def handler_for(application):
                 files["/preparation.css"] = (ROOT / "frontend/preparation.css", "text/css; charset=utf-8")
                 files["/appearance.js"] = (ROOT / "frontend/appearance.js", "text/javascript; charset=utf-8")
                 files["/appearance.css"] = (ROOT / "frontend/appearance.css", "text/css; charset=utf-8")
+                files["/campusmate.js"] = (ROOT / "frontend/campusmate.js", "text/javascript; charset=utf-8")
+                files["/campusmate.css"] = (ROOT / "frontend/campusmate.css", "text/css; charset=utf-8")
                 files["/assets/school-mascot.png"] = (ROOT / "frontend/assets/school-mascot.png", "image/png")
                 files["/assets/mascot-lines.json"] = (ROOT / "frontend/assets/mascot-lines.json", "application/json; charset=utf-8")
                 for pose in ("wave", "reading", "point"):
