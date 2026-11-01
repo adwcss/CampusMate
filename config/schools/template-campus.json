@@ -1,0 +1,10 @@
+{
+  "school_id": "template-campus",
+  "name": "待接入高校（空白模板）",
+  "short_name": "待接入",
+  "official_home": "",
+  "official_domains": [],
+  "legacy_content": false,
+  "status": "未接入真实学校；资料、地点与官方入口待配置",
+  "map_notice": "尚无可核实校园地图；空白画布不代表任何真实校园。"
+}

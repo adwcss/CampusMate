@@ -2,6 +2,8 @@
 import json
 import re
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from .search_service import SearchService, possible_conflicts
 from .retriever.retriever import rewrite, terms
 from .websearch import verification_links
 
@@ -17,7 +19,7 @@ def excerpt(chunk, query):
 def local_answer(query, sources, warnings):
     if not sources:
         caution = "\n".join(warnings) + "\n\n" if warnings else ""
-        return caution + "当前资料不足以回答这个问题。请查看学校官方通知，或拨打官网咨询电话0394-8511111、0394-8385111。\n\n你可以继续问：报到准备材料、学费官方入口、宿舍位置。"
+        return caution + "当前资料不足以回答这个问题。请通过所选学校的官方入口核对；未接入的资料不会借用其他学校内容。"
     intro = "从现有资料中找到以下信息："
     if warnings:
         intro = "请先留意资料的适用范围：\n" + "\n".join(warnings) + "\n\n以下内容供核对参考："
@@ -25,15 +27,33 @@ def local_answer(query, sources, warnings):
 
 
 class Answerer:
-    def __init__(self, retriever, settings):
+    def __init__(self, retriever, settings, school=None):
         self.retriever = retriever
         self.settings = settings
         self.remote_calls = 0
+        if school is None:
+            from .schools import load_schools, DEFAULT_SCHOOL
+            school = load_schools()[DEFAULT_SCHOOL]
+        self.school = school
+        self.search = SearchService(settings, school)
 
-    def prepare(self, question, history):
+    def prepare(self, question, history, retrieval_mode="local"):
         query = rewrite(question, history)
-        sources = self.retriever.search(query)
+        web, search_status = [], "not_requested"
+        if retrieval_mode == "enhanced":
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                local_future = pool.submit(self.retriever.search, query)
+                web_future = pool.submit(self.search.search, query)
+                sources = local_future.result()
+                web, search_status = web_future.result()
+        else:
+            sources = self.retriever.search(query)
+        conflicts = possible_conflicts(sources, web)
+        sources = sources + web
         warnings = list(dict.fromkeys(c["caveat"] for c in sources if not c["verified"]))
+        warnings.extend(c["message"] for c in conflicts)
+        if retrieval_mode == "enhanced" and search_status != "ok":
+            warnings.append({"not_configured": "联网搜索未配置或未开启，已继续使用本地资料；AI密钥不会启用搜索。", "no_official_results": "搜索服务未返回所选学校官方域名的有效摘要，已使用本地资料。", "unavailable": "搜索服务暂不可用，已继续使用本地资料。"}[search_status])
         if re.search(r"开放时间|几点|营业时间|现在.*开放|目前.*开放", query):
             warnings.insert(0, "当前资料未确认该设施的开放时间或当前开放状态，位置说明不能代替开放通知。")
         if re.search(r"多少钱|多少元|金额|收费标准|学费多少|住宿费多少", query):
@@ -46,13 +66,13 @@ class Answerer:
             warnings.insert(0, "当前资料未确认实际宿舍分配，图上编号仅作参考，不能预订或保证环境。")
         if self.settings.key_blocked():
             warnings.append("交接材料中的密钥已被拦截，本次使用本地资料模式。")
-        return {"query": query, "sources": sources, "warnings": list(dict.fromkeys(warnings)), "remote_attempted": False, "web_used": False, "check_links": verification_links(query) if not sources or any("未确认" in w for w in warnings) else []}
+        return {"query": query, "sources": sources, "warnings": list(dict.fromkeys(warnings)), "remote_attempted": False, "web_used": bool(web), "search_status": search_status, "conflicts": conflicts, "check_links": verification_links(query, self.school) if not sources or warnings else []}
 
     def generate(self, question, prepared):
         answer = local_answer(prepared["query"], prepared["sources"], prepared["warnings"])
         mode = "local_evidence"
         # Missing evidence/year-sensitive facts never go to a model.
-        sensitive = any("未确认" in w for w in prepared["warnings"])
+        sensitive = any("未确认" in w for w in prepared["warnings"]) or any(c.get("evidence_origin") == "search_api" for c in prepared["sources"])
         if self.settings.remote_enabled() and prepared["sources"] and not sensitive:
             try:
                 context = "\n\n".join(f"【{i}】来源：{c['source']}；限制：{c['caveat']}\n{c['text']}" for i, c in enumerate(prepared["sources"], 1))

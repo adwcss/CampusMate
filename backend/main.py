@@ -17,6 +17,8 @@ from .club import CLUBS, CLUB_CATEGORIES, TIPS as CLUB_TIPS, NOTE as CLUB_NOTE
 from .studentorg import INTRO as ORG_INTRO, ORG_CATEGORIES, ORGS, TIPS as ORG_TIPS, NOTE as ORG_NOTE
 from .retriever.retriever import Retriever
 from .settings import ROOT, Settings
+from .schools import DEFAULT_SCHOOL, load_schools, select_school
+from .knowledge import school_chunks
 from .store import Store
 from .experience import Experience, validate_profile
 from .planner import validate_task, validate_backup, backup, calendar
@@ -31,17 +33,35 @@ def valid_session(value):
 
 
 class Application:
-    def __init__(self, settings=None):
+    def __init__(self, settings=None, school_id=DEFAULT_SCHOOL, registry=None, contexts=None):
         self.settings = settings or Settings.load()
-        self.retriever = Retriever(ROOT)
-        self.answerer = Answerer(self.retriever, self.settings)
-        self.store = Store(self.settings.data_dir)
+        self.registry = registry if registry is not None else load_schools()
+        self.school = select_school(self.registry, school_id)
+        self.school_id = school_id
+        self.contexts = contexts if contexts is not None else {}
+        self.context_lock = threading.RLock()
+        self.retriever = Retriever(ROOT, chunks=school_chunks(self.school))
+        self.answerer = Answerer(self.retriever, self.settings, self.school)
+        self.store = Store(self.settings.data_dir / "schools" / school_id)
         self.experience = Experience()
+        if not self.school.get("legacy_content"):
+            self.experience.items = {}
         self.requests = defaultdict(deque)
         self.rate_lock = threading.Lock()
+        self.contexts[school_id] = self
+
+    def for_school(self, school_id):
+        select_school(self.registry, school_id)
+        with self.context_lock:
+            if school_id not in self.contexts:
+                context = Application(self.settings, school_id, self.registry, self.contexts)
+                # Share the process-level rate budget across all schools.
+                context.requests, context.rate_lock = self.requests, self.rate_lock
+                self.contexts[school_id] = context
+            return self.contexts[school_id]
 
     def stats(self):
-        return {"version": __version__, "document_count": len({c["source"] for c in self.retriever.chunks}), "chunk_count": len(self.retriever.chunks),
+        return {"school_id": self.school_id, "school": self.school, "search_enabled": self.answerer.search.enabled(), "version": __version__, "document_count": len({c["source"] for c in self.retriever.chunks}), "chunk_count": len(self.retriever.chunks),
                 "updated_at": "2026-10-14", "answer_mode": "remote_llm" if self.settings.remote_enabled() else "local_evidence",
                 "remote_enabled": self.settings.remote_enabled(), "received_key_blocked": self.settings.key_blocked(), "remote_calls": self.answerer.remote_calls}
 
@@ -63,6 +83,7 @@ class Application:
 
 
 def handler_for(application):
+    root_application = application
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -82,9 +103,33 @@ def handler_for(application):
             self.end_headers()
 
         def json(self, value, status=200):
+            if isinstance(value, dict) and hasattr(self, "school_id"):
+                value = {**value, "school_id": self.school_id}
             body = json.dumps(value, ensure_ascii=False).encode("utf-8")
             self.respond_headers(status, length=len(body))
             self.wfile.write(body)
+
+        def context(self, payload=None):
+            args = parse_qs(urlsplit(self.path).query, keep_blank_values=True)
+            values = args.get("school_id", []) + ([self.headers["X-CampusMate-School"]] if "X-CampusMate-School" in self.headers else [])
+            if payload is not None and "school_id" in payload:
+                values.append(payload["school_id"])
+            if any(not isinstance(v, str) for v in values) or len(set(values)) > 1:
+                raise ValueError("学校标识不一致。")
+            self.school_id = values[0] if values else DEFAULT_SCHOOL
+            app = root_application.for_school(self.school_id)
+            path = urlsplit(self.path).path
+            if not app.school.get("legacy_content") and (path.startswith(("/api/orientation", "/api/preparation", "/api/saved", "/api/profile", "/api/recommend")) or path in {"/api/dorm", "/api/contest", "/api/club", "/api/studentorg", "/api/explore", "/api/tasks/from-choice", "/school-map.jpg", "/campus-map.png"} or path.startswith(("/dorm-images/", "/club-images/", "/union-images/"))):
+                raise ValueError("此学校尚未接入该模块资料。")
+            if payload is not None and path in {"/api/tasks/import", "/api/tasks/import-preview", "/api/preparation/preview"}:
+                self.check_backup(payload.get("backup"))
+            if payload is not None and path == "/api/preparation" and isinstance(payload.get("operation"), dict) and payload["operation"].get("action") == "restore":
+                self.check_backup(payload["operation"].get("backup"))
+            return app
+
+        def check_backup(self, value):
+            if not isinstance(value, dict) or value.get("school_id") != self.school_id:
+                raise ValueError("备份缺少当前school_id或属于其他学校，请选择本校新版备份。")
 
         def check_host(self):
             port = self.server.server_port
@@ -115,14 +160,25 @@ def handler_for(application):
                     return self.json({"error": "请求来源不受支持。"}, 403)
                 url = urlsplit(self.path)
                 args = parse_qs(url.query)
+                application = self.context()
+                if url.path == "/api/schools":
+                    return self.json({"schools": list(application.registry.values()), "default_school": DEFAULT_SCHOOL})
+                if url.path == "/api/map":
+                    return self.json({"places": PLACES if application.school.get("legacy_content") else [], "notice": application.school["map_notice"], "image": "/campus-map.svg?school_id=" + application.school_id})
+                if url.path == "/campus-map.svg":
+                    from .campusmap import render_map
+                    body = render_map(application.school).encode("utf-8")
+                    self.respond_headers(200, "image/svg+xml; charset=utf-8", len(body))
+                    self.wfile.write(body)
+                    return
                 if url.path in {"/api/health", "/health"}:
                     return self.json({"status": "ok", **application.stats()})
                 if url.path == "/api/stats":
                     return self.json(application.stats())
                 if url.path == "/api/catalog":
-                    return self.json({"faqs": FAQS, "places": PLACES, "route": ROUTE, "tasks": TASKS})
+                    return self.json({"faqs": FAQS if application.school.get("legacy_content") else [{"category": "待补充资料", "questions": ["报到需要准备什么？"]}], "places": PLACES if application.school.get("legacy_content") else [], "route": ROUTE if application.school.get("legacy_content") else [], "tasks": TASKS if application.school.get("legacy_content") else []})
                 if url.path == "/api/places":
-                    return self.json({"places": PLACES})
+                    return self.json({"places": PLACES if application.school.get("legacy_content") else []})
                 if url.path == "/api/explore":
                     return self.json(application.experience.catalog())
                 if url.path in {"/api/orientation", "/api/orientation/route.txt"}:
@@ -219,8 +275,16 @@ def handler_for(application):
         def do_POST(self):
             try:
                 payload = self.body()
+                application = self.context(payload)
                 session = valid_session(payload.get("session", ""))
                 path = urlsplit(self.path).path
+                if path in {"/api/arrival/preview", "/api/arrival/generate"}:
+                    from .arrival import arrival_tasks
+                    tasks = arrival_tasks(payload.get("profile"), application.school)
+                    if path.endswith("preview"):
+                        return self.json({"tasks": tasks, "note": "个人准备建议，非学校报到规定；日期为自填计划。"})
+                    result = application.store.merge_arrival_tasks(session, tasks)
+                    return self.json({**result, "tasks": application.store.tasks(session)})
                 if path == "/api/preparation":
                     application.store.change_preparation(session, payload.get("operation"))
                     return self.json(application.preparation(session))
@@ -267,7 +331,7 @@ def handler_for(application):
                     return self.json({"items": application.experience.saved_items(application.store.saved(session))})
                 if path == "/api/checklist":
                     task = payload.get("task")
-                    if task not in {t["id"] for t in TASKS} or not isinstance(payload.get("checked"), bool):
+                    if not application.school.get("legacy_content") or task not in {t["id"] for t in TASKS} or not isinstance(payload.get("checked"), bool):
                         raise ValueError("清单项目无效。")
                     application.store.check(session, task, payload["checked"])
                     return self.json({"checked": application.store.checklist(session)})
@@ -284,10 +348,13 @@ def handler_for(application):
                 if not application.allow_request(self.client_address[0]):
                     return self.json({"error": "提问过于频繁，请稍后重试。"}, 429)
                 history = application.store.history(session, 8)
-                prepared = application.answerer.prepare(question.strip(), history)
+                retrieval_mode = payload.get("retrieval_mode", "local")
+                if retrieval_mode not in ("local", "enhanced"):
+                    raise ValueError("检索模式无效。")
+                prepared = application.answerer.prepare(question.strip(), history, retrieval_mode)
                 answer, mode = application.answerer.generate(question.strip(), prepared)
                 application.store.save(session, "user", question.strip())
-                response_payload = {"sources": prepared["sources"], "warnings": prepared["warnings"], "mode": mode, "query": prepared["query"], "remote_attempted": prepared["remote_attempted"], "web_used": False, "check_links": prepared["check_links"]}
+                response_payload = {"school_id": application.school_id, "sources": prepared["sources"], "warnings": prepared["warnings"], "mode": mode, "query": prepared["query"], "remote_attempted": prepared["remote_attempted"], "web_used": prepared["web_used"], "retrieval_mode": retrieval_mode, "search_status": prepared.get("search_status", "not_requested"), "conflicts": prepared.get("conflicts", []), "check_links": prepared["check_links"]}
                 answer_id = application.store.save(session, "assistant", answer, response_payload)
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream; charset=utf-8")
@@ -318,6 +385,7 @@ def handler_for(application):
         def do_DELETE(self):
             try:
                 payload = self.body()
+                application = self.context(payload)
                 if urlsplit(self.path).path != "/api/history":
                     return self.json({"error": "接口不存在。"}, 404)
                 application.store.delete_history(valid_session(payload.get("session", "")))

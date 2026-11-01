@@ -1,0 +1,10 @@
+{
+  "school_id": "hnvust",
+  "name": "河南科技职业大学",
+  "short_name": "河职大",
+  "official_home": "https://www.hnvust.cn/",
+  "official_domains": ["hnvust.cn"],
+  "legacy_content": true,
+  "status": "示范配置；交接资料待核对，2026级报到须知待补充",
+  "map_notice": "基于交接地点坐标制作的二维插画示意，非官方地图、非实测比例，不提供道路导航。"
+}

@@ -27,6 +27,7 @@ class Store:
                 CREATE TABLE IF NOT EXISTS rehearsal_answers(session TEXT NOT NULL, scenario TEXT NOT NULL, choice INTEGER NOT NULL, PRIMARY KEY(session,scenario));
                 CREATE TABLE IF NOT EXISTS campus_itinerary(session TEXT PRIMARY KEY, payload TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS departure_preparation(session TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS arrival_generated(session TEXT NOT NULL, template TEXT NOT NULL, task_id TEXT NOT NULL, PRIMARY KEY(session,template));
             """)
 
     @contextmanager
@@ -133,6 +134,22 @@ class Store:
                 raise ValueError("合并后超过100项任务，未导入任何任务。")
             for task in additions:
                 db.execute("INSERT INTO personal_tasks VALUES(?,?,?)", (task["id"], session, json.dumps(task, ensure_ascii=False)))
+        return {"added": len(additions), "skipped": len(tasks) - len(additions)}
+
+    def merge_arrival_tasks(self, session, tasks):
+        # Template identity is independent of mutable status/date/notes.
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            existing = {r["template"] for r in db.execute("SELECT template FROM arrival_generated WHERE session=?", (session,))}
+            additions = [task for task in tasks if task["arrival_template"] not in existing]
+            count = db.execute("SELECT COUNT(*) FROM personal_tasks WHERE session=?", (session,)).fetchone()[0]
+            if count + len(additions) > LIMIT:
+                raise ValueError("生成后超过100项任务，未添加任何任务。")
+            for task in additions:
+                value = {k: v for k, v in task.items() if k != "arrival_template"}
+                value["id"] = new_id()
+                db.execute("INSERT INTO personal_tasks VALUES(?,?,?)", (value["id"], session, json.dumps(value, ensure_ascii=False)))
+                db.execute("INSERT INTO arrival_generated VALUES(?,?,?)", (session, task["arrival_template"], value["id"]))
         return {"added": len(additions), "skipped": len(tasks) - len(additions)}
 
     def preview_tasks(self, session, tasks):

@@ -14,6 +14,9 @@ class Settings:
     api_key: str = ""
     model: str = "deepseek-chat"
     data_dir: Path = ROOT / ".runtime"
+    allow_search: bool = False
+    search_provider: str = "brave"
+    search_key: str = ""
 
     @classmethod
     def load(cls):
@@ -23,6 +26,9 @@ class Settings:
             api_key=os.environ.get("GUIDE_LLM_API_KEY", "").strip(),
             model=os.environ.get("GUIDE_LLM_MODEL", "deepseek-chat"),
             data_dir=Path(os.environ.get("GUIDE_DATA_DIR", str(ROOT / ".runtime"))),
+            allow_search=os.environ.get("CAMPUSMATE_ALLOW_SEARCH", "false").lower() == "true",
+            search_provider=os.environ.get("CAMPUSMATE_SEARCH_PROVIDER", "brave"),
+            search_key=os.environ.get("CAMPUSMATE_SEARCH_API_KEY", "").strip(),
         )
 
     def remote_enabled(self):

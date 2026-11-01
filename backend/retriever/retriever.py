@@ -47,8 +47,8 @@ def rewrite(question, history):
 
 
 class Retriever:
-    def __init__(self, root):
-        self.chunks = split_all(root)
+    def __init__(self, root, chunks=None):
+        self.chunks = split_all(root) if chunks is None else chunks
         self.counts = [Counter(terms(c["section"] + " " + c["text"])) for c in self.chunks]
         self.lengths = [sum(c.values()) for c in self.counts]
         self.average = sum(self.lengths) / max(len(self.lengths), 1)
