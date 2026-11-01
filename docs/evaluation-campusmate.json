@@ -32,7 +32,7 @@
   "kind": "Top-1 keyword coverage on an explicit FAQ set; not human answer-quality scoring",
   "passed": 18,
   "total": 18,
-  "elapsed_ms": 24.95,
+  "elapsed_ms": 24.3,
   "cases": [
     {
       "question": "新生什么时候报到？",
@@ -109,7 +109,7 @@
       "expected_keyword": "馨园",
       "passed": true,
       "top_source": "校园地图.md",
-      "top_section": "馨园7-8"
+      "top_section": "馨园9-10"
     },
     {
       "question": "沁园宿舍在哪？",

@@ -524,7 +524,7 @@ function renderUnionList() {
 function setZoom(value) {
   state.zoom = Math.max(1, Math.min(2.5, value));
   $("#map-canvas").style.width = `${state.zoom * 100}%`;
-  $(".map-viewport").classList.toggle("is-zoomed", state.zoom > 1);
+  $("#view-map .map-viewport").classList.toggle("is-zoomed", state.zoom > 1);
   $("#zoom-label").textContent = `${Math.round(state.zoom * 100)}%`;
   $("#zoom-out").disabled = state.zoom <= 1;
   $("#zoom-in").disabled = state.zoom >= 2.5;
