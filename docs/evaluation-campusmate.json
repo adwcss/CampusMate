@@ -32,7 +32,7 @@
   "kind": "Top-1 keyword coverage on an explicit FAQ set; not human answer-quality scoring",
   "passed": 18,
   "total": 18,
-  "elapsed_ms": 29.58,
+  "elapsed_ms": 24.95,
   "cases": [
     {
       "question": "新生什么时候报到？",
