@@ -20,6 +20,10 @@ from backend.schools import load_schools, official_url
 from backend.search_service import SearchService, possible_conflicts, search_query, NoRedirect
 from backend.arrival import arrival_tasks
 from backend.campusmap import render_map
+from tools.migrate_legacy_data import migrate
+from backend.knowledge import school_chunks
+from backend.store import Store
+import hashlib
 
 
 class MultiHTTP(unittest.TestCase):
@@ -175,6 +179,59 @@ class SearchTests(unittest.TestCase):
         for url in ("http://hnvust.cn/a", "https://hnvust.cn.evil/a", "https://evilhnvust.cn/a", "https://hnvust.cn:444/a", "https://user@hnvust.cn/a"):
             self.assertFalse(official_url(url, self.school))
         self.assertTrue(official_url("https://zhaoshengchu.hnvust.cn/a", self.school))
+
+
+class KnowledgeAndMigrationTests(unittest.TestCase):
+    def test_verified_source_checksum_school_boundary_and_pending_skip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); folder = root / "knowledge/example-campus"; folder.mkdir(parents=True)
+            raw = "## 入学参考\n报到材料以本人通知为准。".encode()
+            (folder / "official.txt").write_bytes(raw)
+            school = {"school_id":"example-campus", "official_domains":["school.example"], "legacy_content":False}
+            source = {"title":"测试官方资料", "url":"https://school.example/a", "status":"verified_download", "file":"official.txt", "sha256":hashlib.sha256(raw).hexdigest(), "downloaded_at":"2026-11-01T00:00:00Z"}
+            manifest = folder / "sources.json"
+            manifest.write_text(json.dumps({"school_id":"example-campus", "sources":[source]}), encoding="utf-8")
+            with patch("backend.knowledge.ROOT", root):
+                chunks = school_chunks(school)
+                self.assertEqual(chunks[0]["school_id"], "example-campus"); self.assertTrue(chunks[0]["verified"])
+                (folder / "official.txt").write_text("tampered", encoding="utf-8")
+                with self.assertRaises(ValueError): school_chunks(school)
+                source["status"] = "pending_verification"
+                manifest.write_text(json.dumps({"school_id":"example-campus", "sources":[source]}), encoding="utf-8")
+                self.assertEqual(school_chunks(school), [])
+                manifest.write_text(json.dumps({"school_id":"wrong-campus", "sources":[]}), encoding="utf-8")
+                with self.assertRaises(ValueError): school_chunks(school)
+
+    def test_knowledge_path_cannot_escape_school_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); folder = root / "knowledge/example-campus"; folder.mkdir(parents=True)
+            source = {"status":"verified_download", "file":"../../private.txt", "url":"https://school.example/a"}
+            (folder / "sources.json").write_text(json.dumps({"school_id":"example-campus", "sources":[source]}), encoding="utf-8")
+            with patch("backend.knowledge.ROOT", root), self.assertRaises(ValueError):
+                school_chunks({"school_id":"example-campus", "official_domains":["school.example"]})
+
+    def test_legacy_migration_keeps_source_session_and_refuses_overwrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); old = Store(root / "old")
+            old.save("old-session-00001", "user", "旧资料")
+            before = hashlib.sha256(old.path.read_bytes()).hexdigest()
+            target = migrate(old.path, root / "new")
+            self.assertTrue(target.is_file())
+            restored = Store(root / "new/schools/hnvust")
+            self.assertEqual(restored.history("old-session-00001")[0]["content"], "旧资料")
+            self.assertEqual(hashlib.sha256(old.path.read_bytes()).hexdigest(), before)
+            with self.assertRaises(ValueError): migrate(old.path, root / "new")
+
+    def test_configuration_rejects_cross_school_legacy_and_malformed_places(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); folder = root / "config/schools"; folder.mkdir(parents=True)
+            school = {**load_schools()["hnvust"], "school_id":"wrong-campus"}
+            (folder / "wrong-campus.json").write_text(json.dumps(school), encoding="utf-8")
+            with patch("backend.schools.ROOT", root), self.assertRaises(ValueError): load_schools()
+
+    def test_settings_repr_does_not_disclose_keys(self):
+        value = repr(Settings(api_key="synthetic-llm-secret", search_key="synthetic-search-secret"))
+        self.assertNotIn("synthetic-llm-secret", value); self.assertNotIn("synthetic-search-secret", value)
 
 
 if __name__ == "__main__":

@@ -24,7 +24,9 @@ CASES = [
 
 def evaluate():
     started = time.perf_counter()
-    retriever = Retriever(ROOT)
+    from backend.schools import load_schools
+    from backend.knowledge import school_chunks
+    retriever = Retriever(ROOT, chunks=school_chunks(load_schools()["hnvust"]))
     rows = []
     for question, expected in CASES:
         results = retriever.search(question)

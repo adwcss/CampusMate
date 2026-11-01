@@ -788,6 +788,6 @@ if __name__ == "__main__":
     capture = io.StringIO()
     result = unittest.TextTestRunner(stream=capture, verbosity=2).run(suite)
     report = {"tests": result.testsRun, "failures": len(result.failures), "errors": len(result.errors), "success": result.wasSuccessful(), "scope": "Offline unit and localhost HTTP checks; remote adapter mocked", "output": capture.getvalue()}
-    (ROOT / "docs/verification.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (ROOT / "docs/campusmate-legacy-regression.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(capture.getvalue())
     sys.exit(0 if result.wasSuccessful() else 1)

@@ -234,7 +234,7 @@ def handler_for(application):
                 if url.path == "/api/sources":
                     documents = {}
                     for c in application.retriever.chunks:
-                        documents.setdefault(c["source"], {"name": c["source"], "source_type": c["source_type"], "urls": c["urls"], "effective_year": c["effective_year"], "caveat": c["caveat"], "verified": c["verified"], "chunks": []})["chunks"].append({"id": c["id"], "section": c["section"], "text": c["text"]})
+                        documents.setdefault(c["source"], {"school_id": application.school_id, "name": c["source"], "source_type": c["source_type"], "urls": c["urls"], "effective_year": c["effective_year"], "caveat": c["caveat"], "verified": c["verified"], "published_at": c.get("published_at"), "collected_at": c["collected_at"], "chunks": []})["chunks"].append({"id": c["id"], "school_id": application.school_id, "section": c["section"], "text": c["text"]})
                     return self.json({"documents": list(documents.values())})
                 if url.path == "/favicon.ico":
                     self.respond_headers(204, "image/x-icon", 0)
