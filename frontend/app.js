@@ -263,7 +263,7 @@ function renderTasks() {
   }
   updateProgress();
 }
-function selectPlace(place) {
+function selectPlace(place, reveal = true) {
   $("#place-detail").replaceChildren(element("h3", "", place.name), element("p", "", place.note), button("查看相关资料", () => ask(place.question), "primary"), element("small", "", "图上定位仅供参考，请以建筑标识及现场引导为准。"));
   if (orientationReady) {
     const exists = orientation.itinerary.stops.some(stop => stop.id === place.id);
@@ -272,6 +272,7 @@ function selectPlace(place) {
   }
   document.querySelectorAll("[data-place]").forEach(node => {
     const active = node.dataset.place === place.id;
+    if (node.classList.contains("map-pin")) node.hidden = !state.showMapMarkers && !(active && reveal);
     node.classList.toggle("active", active);
     node.setAttribute("aria-pressed", String(active));
   });
@@ -279,22 +280,26 @@ function selectPlace(place) {
 function renderPlaces() {
   const list = $("#place-list"); list.replaceChildren(); $("#map-pins").replaceChildren();
   let currentCategory = "";
-  const places = state.catalog.places.filter(place => (!state.mapCategory || place.category === state.mapCategory) && (!state.mapQuery || `${place.name} ${place.note}`.includes(state.mapQuery)) && (!routeOnly || orientation?.itinerary.stops.some(stop => stop.id === place.id)));
-  $("#map-results").textContent = `显示 ${places.length}/${state.catalog.places.length} 个地点`;
+  const mappable = state.catalog.places.filter(place => place.map_confirmed !== false);
+  const places = mappable.filter(place => (!state.mapCategory || place.category === state.mapCategory) && (!state.mapQuery || `${place.name} ${place.note}`.includes(state.mapQuery)) && (!routeOnly || orientation?.itinerary.stops.some(stop => stop.id === place.id)));
+  $("#map-results").textContent = `显示 ${places.length}/${mappable.length} 个图上可辨认地点`;
   state.catalog.places.forEach((place, index) => {
     if (!places.includes(place)) return;
     if (place.category !== currentCategory) {
       currentCategory = place.category; list.append(element("h3", "place-group-title", currentCategory));
     }
     const pin = button(String(index + 1), () => selectPlace(place), "map-pin");
+    if (place.map_confirmed === false) return;
     const stopIndex = orientationReady ? orientation.itinerary.stops.findIndex(stop => stop.id === place.id) : -1;
     if (stopIndex !== -1) { pin.textContent = `行${stopIndex + 1}`; pin.classList.add("route-stop-pin"); pin.classList.toggle("route-visited-pin", orientation.itinerary.stops[stopIndex].visited); }
-    pin.style.left = `${place.x}%`; pin.style.top = `${place.y}%`;
+    const position = state.originalMap && place.original_position ? place.original_position : place;
+    pin.style.left = `${position.x}%`; pin.style.top = `${position.y}%`;
+    pin.hidden = !state.showMapMarkers;
     pin.dataset.place = place.id; pin.dataset.name = place.name;
     pin.setAttribute("aria-label", `查看${place.name}图上位置`); pin.title = place.name; $("#map-pins").append(pin);
     const listItem = button(`${index + 1}. ${place.name}`, () => selectPlace(place), ""); listItem.dataset.place = place.id; list.append(listItem);
   });
-  if (places.length) selectPlace(places[0]);
+  if (places.length) selectPlace(places[0], false);
   else { list.append(element("p", "empty-choices", "未找到地点，试试建筑名称或清除筛选。")); $("#place-detail").replaceChildren(); }
 }
 // ---- 宿舍选择模块 ----
@@ -519,6 +524,7 @@ function renderUnionList() {
 function setZoom(value) {
   state.zoom = Math.max(1, Math.min(2.5, value));
   $("#map-canvas").style.width = `${state.zoom * 100}%`;
+  $(".map-viewport").classList.toggle("is-zoomed", state.zoom > 1);
   $("#zoom-label").textContent = `${Math.round(state.zoom * 100)}%`;
   $("#zoom-out").disabled = state.zoom <= 1;
   $("#zoom-in").disabled = state.zoom >= 2.5;
@@ -528,7 +534,7 @@ $("#zoom-out").addEventListener("click", () => setZoom(state.zoom - .25));
 $("#zoom-reset").addEventListener("click", () => setZoom(1));
 $("#map-full").addEventListener("click", () => $("#map-dialog").showModal());
 $("#close-map").addEventListener("click", () => $("#map-dialog").close());
-$("#campus-image").addEventListener("error", () => toast("地图加载失败，请确认项目目录内的学校地图.jpg存在。"));
+$("#campus-image").addEventListener("error", () => toast("地图图片未能加载，请刷新或查看项目地图资源。"));
 $("#print-checklist").addEventListener("click", () => window.print());
 
 function renderSources(filter = "") {

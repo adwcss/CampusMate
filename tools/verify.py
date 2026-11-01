@@ -723,7 +723,7 @@ class OrientationTests(unittest.TestCase):
             store = Store(directory); store.check("a", "notice", True)
             store.answer_scenario("a", "notice", 0); store.answer_scenario("a", "notice", 1)
             route = store.change_itinerary("a", {"revision": 0, "action": "preset", "preset": "daily"})
-            store.change_itinerary("a", {"revision": route["revision"], "action": "visit", "place": "kuaidi", "visited": True})
+            store.change_itinerary("a", {"revision": route["revision"], "action": "visit", "place": "canyin-2", "visited": True})
             reopened = Store(directory)
             self.assertEqual(reopened.rehearsal("a"), {"notice": 1})
             self.assertTrue(reopened.itinerary("a")["stops"][1]["visited"])

@@ -111,6 +111,36 @@ class MultiHTTP(unittest.TestCase):
         svg = self.request("GET", "/campus-map.svg", school="template-campus")[1]
         self.assertNotIn("沁园", svg); self.assertIn("暂无可核实地点", svg)
 
+    def test_user_map_has_image_pair_with_correct_school_boundary(self):
+        import struct
+        for filename in ("hnvust-map-original.png", "hnvust-map-artwork.png"):
+            connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=10)
+            connection.request("GET", "/assets/maps/" + filename, headers={"X-CampusMate-School":"hnvust"})
+            response = connection.getresponse(); raw = response.read(); connection.close()
+            self.assertEqual(response.status, 200); self.assertEqual(raw[:8], b"\x89PNG\r\n\x1a\n")
+            width, height = struct.unpack(">II", raw[16:24]); self.assertGreater(width, 700); self.assertGreater(height, 700)
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), hashlib.sha256((ROOT / "frontend/assets/maps" / filename).read_bytes()).hexdigest())
+            self.assertEqual(self.request("GET", "/assets/maps/" + filename, school="template-campus")[0], 404)
+
+    def test_user_map_alignment_replaces_previous_geometry(self):
+        places = {row["id"]:row for row in self.request("GET", "/api/places")[1]["places"]}
+        self.assertEqual(sum(row.get("map_confirmed", True) for row in places.values()), 30)
+        self.assertAlmostEqual(places["tushuguan"]["original_position"]["x"], 549/813*100, places=2)
+        self.assertFalse(places["wenti"]["map_confirmed"])
+        self.assertIn("未清晰确认", places["wenti"]["note"])
+        self.assertEqual(places["wangqiu-1"]["name"], "百草园")
+
+    def test_map_metadata_and_compare_controls(self):
+        data = self.request("GET", "/api/map")[1]
+        self.assertEqual(data["image"], "/assets/maps/hnvust-map-beautified.svg")
+        self.assertEqual(data["original_image"], "/assets/maps/hnvust-map-original.png")
+        page = self.request("GET", "/")[1]
+        self.assertIn('id="map-image-version"', page); self.assertIn('id="map-dialog-title"', page)
+        svg = self.request("GET", data["image"])[1]
+        ET.fromstring(svg)
+        self.assertIn('id="verified-dorm-labels"', svg)
+        self.assertIn('>馨园3</text>', svg); self.assertIn('>馨园2</text>', svg)
+
     def test_enhanced_without_key_sse_fallback_and_default_no_calls(self):
         status, text = self.request("POST", "/api/ask", {"session": "search-fallback-001", "question": "报到时间？", "retrieval_mode": "enhanced"})
         self.assertEqual(status, 200); self.assertIn('"search_status": "not_configured"', text)

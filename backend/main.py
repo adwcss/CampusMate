@@ -165,7 +165,7 @@ def handler_for(application):
                 if url.path == "/api/schools":
                     return self.json({"schools": list(application.registry.values()), "default_school": DEFAULT_SCHOOL})
                 if url.path == "/api/map":
-                    return self.json({"places": application.places, "notice": application.school["map_notice"], "image": "/campus-map.svg?school_id=" + application.school_id})
+                    return self.json({"places": application.places, "notice": application.school["map_notice"], "image": application.school.get("map_image", "/campus-map.svg?school_id=" + application.school_id), "original_image": application.school.get("map_original"), "width": application.school.get("map_width", 928), "height": application.school.get("map_height", 1120)})
                 if url.path == "/campus-map.svg":
                     from .campusmap import render_map
                     body = render_map(application.school).encode("utf-8")
@@ -250,6 +250,10 @@ def handler_for(application):
                 files["/appearance.css"] = (ROOT / "frontend/appearance.css", "text/css; charset=utf-8")
                 files["/campusmate.js"] = (ROOT / "frontend/campusmate.js", "text/javascript; charset=utf-8")
                 files["/campusmate.css"] = (ROOT / "frontend/campusmate.css", "text/css; charset=utf-8")
+                if application.school_id == DEFAULT_SCHOOL:
+                    files["/assets/maps/hnvust-map-artwork.png"] = (ROOT / "frontend/assets/maps/hnvust-map-artwork.png", "image/png")
+                    files["/assets/maps/hnvust-map-original.png"] = (ROOT / "frontend/assets/maps/hnvust-map-original.png", "image/png")
+                    files["/assets/maps/hnvust-map-beautified.svg"] = (ROOT / "frontend/assets/maps/hnvust-map-beautified.svg", "image/svg+xml; charset=utf-8")
                 files["/assets/school-mascot.png"] = (ROOT / "frontend/assets/school-mascot.png", "image/png")
                 files["/assets/mascot-lines.json"] = (ROOT / "frontend/assets/mascot-lines.json", "application/json; charset=utf-8")
                 for pose in ("wave", "reading", "point"):

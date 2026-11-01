@@ -141,9 +141,11 @@ function renderItinerary() {
   $("#export-itinerary").disabled = !route.stops.length; $("#clear-itinerary").disabled = !route.stops.length;
   const svg = $("#map-route-lines"); svg.replaceChildren();
   const points = route.stops.map(stop => state.catalog.places.find(item => item.id === stop.id));
-  if (points.length > 1) {
+  for (let index = 1; index < points.length; index++) {
+    const pair = [points[index - 1], points[index]];
+    if (pair.some(place => !place || place.map_confirmed === false)) continue;
     const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-    line.setAttribute("points", points.map(place => `${place.x},${place.y}`).join(" "));
+    line.setAttribute("points", pair.map(place => { const position = state.originalMap && place.original_position ? place.original_position : place; return `${position.x},${position.y}`; }).join(" "));
     svg.append(line);
   }
 }
@@ -154,7 +156,7 @@ async function initializeOrientation() {
   $("#view-map .map-detail").prepend($("#itinerary-panel"));
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); svg.id = "map-route-lines"; svg.setAttribute("viewBox", "0 0 100 100"); svg.setAttribute("preserveAspectRatio", "none"); svg.setAttribute("aria-hidden", "true"); $("#map-canvas").prepend(svg);
   const routeSelect = $("#itinerary-place");
-  for (const place of state.catalog.places) { const option = element("option", "", `${place.category} · ${place.name}`); option.value = place.id; routeSelect.append(option); }
+  for (const place of state.catalog.places.filter(place => place.map_confirmed !== false)) { const option = element("option", "", `${place.category} · ${place.name}`); option.value = place.id; routeSelect.append(option); }
   $("#itinerary-presets").replaceChildren(...orientation.presets.map(preset => {
     const node = button(preset.name, () => {
       if (orientation.itinerary.stops.length && !confirm("改用这条参考行程？共同地点的到访状态会保留，其他地点将移出当前行程。")) return;

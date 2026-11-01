@@ -4,9 +4,9 @@ from .catalog import PLACES
 PLACES_BY_ID = {place["id"]: place for place in PLACES}
 ROUTE_LIMIT = 8
 PRESETS = [
-    {"id": "daily", "name": "认识生活服务", "detail": "先了解吃饭、取件和生活服务的位置。", "stops": ["canyin-1", "kuaidi", "xinChuang", "weishengzhen"]},
+    {"id": "daily", "name": "认识生活服务", "detail": "认识用户新图中可辨认的第一、第二餐厅；不推测营业时间。", "stops": ["canyin-1", "canyin-2"]},
     {"id": "study", "name": "看看学习空间", "detail": "认识教学与学习场所，开放情况到场核对。", "stops": ["houde", "shixun-1", "tushuguan"]},
-    {"id": "activity", "name": "课后校园探索", "detail": "了解运动场地和文体中心的图上位置。", "stops": ["wenti", "caochang-2", "tiyuchang", "lanqiu-2"]},
+    {"id": "activity", "name": "课后校园探索", "detail": "了解用户图中可辨认的运动场地；未辨认的历史地点不显示坐标。", "stops": ["caochang-2", "tiyuchang", "lanqiu-2"]},
 ]
 
 

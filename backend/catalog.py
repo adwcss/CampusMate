@@ -57,6 +57,31 @@ PLACES = [
     {"id": "taiyanghu", "name": "太阳湖", "category": "其他地标", "x": 58, "y": 85, "question": "太阳湖在哪？", "note": "图上中部偏下，综合楼（南）东侧、游泳馆西侧的椭圆形水面。"},
     {"id": "guangminglu", "name": "光明路", "category": "其他地标", "x": 50, "y": 58, "question": "光明路在哪？", "note": "图上中部横贯东西的主干道，把校园分为南北两部分。"},
 ]
+
+# New user-supplied map replaces the previous image geometry. Unreadable legacy
+# locations keep their IDs for saved plans but are not shown as map coordinates.
+import json as _json
+from pathlib import Path as _Path
+_alignment = _json.loads((_Path(__file__).resolve().parents[1] / "config/map-user-alignment.json").read_text(encoding="utf-8"))
+for _place in PLACES:
+    _position = _alignment["positions"].get(_place["id"])
+    _place["map_confirmed"] = _position is not None
+    if _position:
+        _place.update(name=_position["name"], note=_position["note"] + " 来源：用户上传校园示意图，非实地测绘。",
+                      x=round(_position["pixel_x"] / _alignment["source_width"] * 100, 3),
+                      y=round(_position["pixel_y"] / _alignment["source_height"] * 100, 3))
+        _place["original_position"] = {"x": _place["x"], "y": _place["y"]}
+        if "beautified_pixel_x" in _position:
+            _place.update(x=round(_position["beautified_pixel_x"] / _alignment["beautified_width"] * 100, 3),
+                          y=round(_position["beautified_pixel_y"] / _alignment["beautified_height"] * 100, 3))
+        if _place["id"] == "wangqiu-1":
+            _place.update(category="其他地标", question="百草园在哪里？")
+    else:
+        _place["note"] = "用户新上传地图未清晰确认此地点，已撤下定位标记。历史描述仅保留作参考：" + _place["note"]
+PLACES.append({"id":"teaching-center", "name":"综合教学中心", "category":"教学与办公区", "x":47.448, "y":40.032,
+               "original_position":{"x":49.2,"y":41.4}, "map_confirmed":True, "question":"综合教学中心在哪里？",
+               "note":"用户上传示意图上部居中的大矩形区域，第二体育场东侧、停车场西侧；位置非实地测绘。"})
+
 ROUTE = [
     {"title": "抵达学校", "detail": "先核对当年报到时间、接站安排与入校入口。", "question": "学校在哪些站点接站？"},
     {"title": "找到报到处", "detail": "按当年官方通知或现场志愿者指引前往。", "question": "报到点在哪里？"},

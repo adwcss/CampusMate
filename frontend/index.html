@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f4f8fe">
-  <meta name="description" content="河南科技职业大学新生问答、校园地图与报到准备清单。每条回答可查看资料来源。">
+  <meta name="description" content="河南科技职业大学新生问答、用户上传地图的美化与文字校对版、报到准备清单。每条回答可查看资料来源。">
   <title>初到 · 河职大新生指南</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/preparation.css">
@@ -86,7 +86,7 @@
         <aside class="arrival-tools" aria-label="准备与校园探索">
           <h2>从了解，到行动。</h2><p>练习之后，亲自核对准备项；到校之后，认识自己会用到的地方。</p>
           <section><h3>出发准备</h3><p id="arrival-readiness">正在读取准备进度…</p><a class="inline-link" href="/?view=checklist">打开我的报到清单</a><small>勾选由你确认。答对场景不会自动完成准备项。</small></section>
-          <section class="arrival-explore"><img data-campus-map src="/campus-map.svg?school_id=hnvust" width="928" height="1120" alt="校园交接示意地图缩略图"><h3>规划一次校园探索</h3><p id="arrival-route-status">先选一条参考行程，再按自己的需要调整。</p><a class="secondary" href="/?view=map">编排我的探索行程</a><small>按自己的顺序认识地点，通行与开放情况以现场为准。</small></section>
+          <section class="arrival-explore"><img data-campus-map src="/assets/maps/hnvust-map-beautified.svg" width="928" height="1120" alt="校园交接示意地图缩略图"><h3>规划一次校园探索</h3><p id="arrival-route-status">先选一条参考行程，再按自己的需要调整。</p><a class="secondary" href="/?view=map">编排我的探索行程</a><small>按自己的顺序认识地点，通行与开放情况以现场为准。</small></section>
           <p class="decision-category">场景由现有资料整理，包含历史参考和通用建议，不代替学校当年通知。</p>
         </aside>
       </div>
@@ -149,7 +149,7 @@
       <div class="page-heading"><div><h1>把想去的地方，串成一次探索。</h1><p>点选地点加入行程，调整顺序，记录自己已经认识的地方。</p></div></div>
       <div id="map-notice" class="notice">二维插画为示意，非官方地图、非实测比例，不提供道路导航。</div>
       <details id="itinerary-panel" class="itinerary-panel" open><summary>我的探索行程 <span id="itinerary-count">正在读取…</span></summary><p class="decision-category">连线只表示先后顺序，不是实际道路或最短路线。勾选到访不代表定位验证。</p><div id="itinerary-presets" class="itinerary-presets" aria-label="参考行程"></div><form id="itinerary-add"><label for="itinerary-place">从地图地点添加<select id="itinerary-place" name="itinerary-place"></select></label><button type="submit" class="secondary">加入行程</button></form><ol id="itinerary-list" class="itinerary-list"></ol><div class="itinerary-footer"><button id="route-only" class="secondary" aria-pressed="false">仅显示行程地点</button><button id="export-itinerary" class="secondary">导出行程</button><button id="clear-itinerary" class="text-button">清空</button></div><p id="itinerary-status" class="form-status" role="status" aria-live="polite">行程保存在本机当前会话中。</p></details>
-      <div class="map-search-controls"><label for="map-search">找地点<input id="map-search" name="map-search" type="search" autocomplete="off" placeholder="例如：图书馆、餐厅…"></label><label for="map-category">区域<select id="map-category" name="map-category"></select></label><span id="map-results" role="status" aria-live="polite"></span></div><div class="map-layout"><div><div class="map-toolbar"><h2>校园地图</h2><div><button id="zoom-out" class="secondary" aria-label="缩小地图">−</button><span id="zoom-label">100%</span><button id="zoom-in" class="secondary" aria-label="放大地图">＋</button><button id="zoom-reset" class="secondary">还原</button><button id="map-full" class="secondary">完整大图</button></div></div><div class="map-viewport"><div class="map-canvas" id="map-canvas"><img data-campus-map src="/campus-map.svg?school_id=hnvust" width="928" height="1120" alt="学校地图，标注宿舍区、教学与办公区、餐饮与服务区、场馆与活动区及其他地标。地图为示意，位置以实地为准。" id="campus-image"><div id="map-pins"></div></div></div></div><aside class="map-detail"><h2>想去哪里？</h2><div id="place-list" class="place-list"></div><div id="place-detail" class="place-detail"></div></aside></div>
+      <div class="map-search-controls"><label for="map-search">找地点<input id="map-search" name="map-search" type="search" autocomplete="off" placeholder="例如：图书馆、餐厅…"></label><label for="map-category">区域<select id="map-category" name="map-category"></select></label><span id="map-results" role="status" aria-live="polite"></span></div><div class="map-layout"><div><div class="map-toolbar"><h2>校园地图</h2><div><button id="zoom-out" class="secondary" aria-label="缩小地图">−</button><span id="zoom-label">100%</span><button id="zoom-in" class="secondary" aria-label="放大地图">＋</button><button id="zoom-reset" class="secondary">还原</button><button id="map-image-version" class="secondary" type="button" aria-pressed="false">对照上传原图</button><button id="map-full" class="secondary">完整大图</button></div></div><div class="map-viewport"><div class="map-canvas" id="map-canvas"><img data-campus-map src="/assets/maps/hnvust-map-beautified.svg" width="928" height="1120" alt="学校地图，标注宿舍区、教学与办公区、餐饮与服务区、场馆与活动区及其他地标。地图为示意，位置以实地为准。" id="campus-image"><div id="map-pins"></div></div></div></div><aside class="map-detail"><h2>想去哪里？</h2><div id="place-list" class="place-list"></div><div id="place-detail" class="place-detail"></div></aside></div>
     </section>
     <section id="view-dorm" class="view" hidden>
       <div class="page-heading"><div><h1>先看看未来的小窝。</h1><p>了解不同位置的取舍，再保存床位偏好。</p></div></div>
@@ -245,7 +245,7 @@
 <div id="compare-bar" class="compare-bar" hidden><span id="compare-count" role="status" aria-live="polite"></span><div><button id="open-compare" class="primary">查看对比</button><button id="clear-compare" class="secondary">清空对比</button></div></div>
 <dialog id="comparison-dialog" class="comparison-dialog" aria-labelledby="comparison-title"><div class="map-toolbar"><h2 id="comparison-title">把选项放在一起看</h2><button id="close-comparison" class="secondary">关闭对比</button></div><p class="decision-category">仅对同类选项做资料对照。排序分和位置参考不代表概率或实测环境。</p><div id="comparison-body" class="comparison-scroll"></div></dialog>
 <dialog id="clear-dialog"><h2>清空当前对话？</h2><p>清空后无法恢复。报到清单会保留。</p><div class="dialog-actions"><button id="cancel-clear" class="secondary">保留对话</button><button id="confirm-clear" class="primary">清空对话</button></div></dialog>
-<dialog id="map-dialog" class="map-dialog"><div class="map-toolbar"><h2>校园地图完整图</h2><button id="close-map" class="secondary">关闭大图</button></div><img data-campus-map src="/campus-map.svg?school_id=hnvust" width="928" height="1120" alt="学校地图完整示意图。地图为示意，位置以实地为准。" loading="lazy"></dialog>
+<dialog id="map-dialog" class="map-dialog"><div class="map-toolbar"><h2 id="map-dialog-title">美化地图 · 图中文字请对照原图</h2><button id="close-map" class="secondary">关闭大图</button></div><img data-campus-map src="/assets/maps/hnvust-map-beautified.svg" width="928" height="1120" alt="学校地图完整示意图。地图为示意，位置以实地为准。" loading="lazy"></dialog>
 <dialog id="bed-dialog" class="bed-dialog">
   <div class="map-toolbar"><h2 id="bed-dialog-title">床位详情</h2><button id="close-bed" class="secondary">关闭</button></div>
   <div id="bed-dialog-body"></div>

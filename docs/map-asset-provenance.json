@@ -1,0 +1,30 @@
+{
+  "created_at": "2026-11-01T15:18:23.036328+00:00",
+  "source": "User supplied image in this chat, not independently verified official cartography",
+  "tool": "built-in image_gen for raster restyling; native SVG text layer for deterministic numeral correction",
+  "original": {
+    "file": "hnvust-map-original.png",
+    "sha256": "bb50c0ef56d55089b1c0a2e5e4709a2527c4846b88c1ab0a572c8bef947e924c",
+    "width": 813,
+    "height": 792
+  },
+  "raster_artwork": {
+    "file": "hnvust-map-artwork.png",
+    "sha256": "84febf962bc913a53f933b4cdd932cb39a1917fe9ab7045df4c575983082c9cc",
+    "note": "AI base art contains two swapped dorm numerals; not used as the final map on its own."
+  },
+  "production_map": {
+    "file": "hnvust-map-beautified.svg",
+    "sha256": "8bcd3abb9c1d0587b69d50ac857caf840b543400e671a0ff6fc843e8f02e24d7",
+    "width": 1254,
+    "height": 1254
+  },
+  "corrections": [
+    "Northern dining room 第二餐厅",
+    "South-east blue building 图书馆",
+    "South green garden 百草园",
+    "Correct two swapped dorm numerals with editable SVG labels"
+  ],
+  "prompts": "docs/map-edit-prompts.json",
+  "caveat": "Not an official map or a ground survey. Tiny labels and school arrangements should be checked against the retained source and on site."
+}

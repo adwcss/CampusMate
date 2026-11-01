@@ -31,9 +31,12 @@ async function initializeSchool() {
   home.hidden = !school.official_home;
   if (school.official_home) home.href = school.official_home;
   document.querySelectorAll("img[data-campus-map]").forEach(image => {
-    image.src = "/campus-map.svg?school_id=" + encodeURIComponent(selectedSchoolId);
+    image.src = school.map_image || "/campus-map.svg?school_id=" + encodeURIComponent(selectedSchoolId);
     image.alt = school.map_notice;
+    image.width = school.map_width || 928;
+    image.height = school.map_height || 1120;
   });
+  initializeMapPresentation(school);
   document.body.classList.toggle("school-template", !school.legacy_content);
   if (!school.legacy_content) {
     document.querySelectorAll("nav a[data-view]").forEach(link => {
@@ -43,6 +46,32 @@ async function initializeSchool() {
     const intro = document.querySelector("#intro-dialog"); if (intro.open) intro.close();
   }
   initializeArrivalGenerator();
+}
+
+function initializeMapPresentation(school) {
+  const toolbar = document.querySelector(".map-toolbar>div");
+  const show = element("label", "map-marker-toggle");
+  const checkbox = element("input"); checkbox.type = "checkbox"; checkbox.id = "show-map-markers";
+  show.append(checkbox, document.createTextNode("显示地点标记"));
+  checkbox.addEventListener("change", () => { state.showMapMarkers = checkbox.checked; renderPlaces(); });
+  toolbar.prepend(show);
+  const compare = document.querySelector("#map-image-version");
+  compare.hidden = !school.map_original;
+  let original = false;
+  compare.addEventListener("click", () => {
+    original = !original;
+    document.querySelectorAll("img[data-campus-map]").forEach(image => {
+      image.src = original ? school.map_original : school.map_image;
+      image.width = original ? (school.map_original_width || 813) : school.map_width;
+      image.height = original ? (school.map_original_height || 792) : school.map_height;
+    });
+    state.originalMap = original;
+    compare.textContent = original ? "返回美化地图" : "对照上传原图";
+    compare.setAttribute("aria-pressed", String(original));
+    document.querySelector("#map-dialog-title").textContent = original ? "用户上传原图" : "美化地图 · 图中文字请对照原图";
+    if (orientationReady) renderItinerary();
+    renderPlaces();
+  });
 }
 
 function initializeArrivalGenerator() {

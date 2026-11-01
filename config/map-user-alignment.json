@@ -1,0 +1,241 @@
+{
+  "source": "用户于本聊天上传的校园示意图，非本次核实的官方地图",
+  "source_width": 813,
+  "source_height": 792,
+  "positions": {
+    "qinyuan-1-9": {
+      "pixel_x": 571,
+      "pixel_y": 167,
+      "name": "沁园1-9",
+      "note": "图上右上方的沁园宿舍片区，第二餐厅上方。",
+      "beautified_pixel_x": 879,
+      "beautified_pixel_y": 255
+    },
+    "xinyuan-4-20": {
+      "pixel_x": 115,
+      "pixel_y": 223,
+      "name": "馨园17-20",
+      "note": "图上左上侧四栋宿舍，分别标注馨园20、19、18、17；该热点不再泛指4-20。",
+      "beautified_pixel_x": 176,
+      "beautified_pixel_y": 360
+    },
+    "xinyuan-2-3": {
+      "pixel_x": 305,
+      "pixel_y": 511,
+      "name": "馨园1-3",
+      "note": "图上南半部宿舍片区的东侧一列；具体楼号需对照原图和现场。",
+      "beautified_pixel_x": 475,
+      "beautified_pixel_y": 790
+    },
+    "xinyuan-7-8": {
+      "pixel_x": 234,
+      "pixel_y": 529,
+      "name": "馨园4-8",
+      "note": "图上南半部宿舍片区的西侧下部；具体楼号需对照原图和现场。",
+      "beautified_pixel_x": 355,
+      "beautified_pixel_y": 818
+    },
+    "xinyuan-9-10": {
+      "pixel_x": 235,
+      "pixel_y": 471,
+      "name": "馨园9-10",
+      "note": "图上光明路南侧的西部宿舍片区，上两栋为馨园10、馨园9。",
+      "beautified_pixel_x": 355,
+      "beautified_pixel_y": 722
+    },
+    "xinyuan-12": {
+      "pixel_x": 224,
+      "pixel_y": 348,
+      "name": "馨园11-12",
+      "note": "图上北半部左侧，馨园16、13右侧的两栋。",
+      "beautified_pixel_x": 333,
+      "beautified_pixel_y": 556
+    },
+    "houde": {
+      "pixel_x": 571,
+      "pixel_y": 288,
+      "name": "厚德楼",
+      "note": "图上北半部偏右，第二餐厅下方、实训中心上方。",
+      "beautified_pixel_x": 886,
+      "beautified_pixel_y": 437
+    },
+    "zhiyuan": {
+      "pixel_x": 686,
+      "pixel_y": 293,
+      "name": "致远楼",
+      "note": "图上北半部右侧教学楼组的上方一栋。",
+      "beautified_pixel_x": 1068,
+      "beautified_pixel_y": 444
+    },
+    "duxing": {
+      "pixel_x": 686,
+      "pixel_y": 330,
+      "name": "笃行楼",
+      "note": "图上北半部右侧教学楼组的中间一栋。",
+      "beautified_pixel_x": 1068,
+      "beautified_pixel_y": 501
+    },
+    "minxing": {
+      "pixel_x": 686,
+      "pixel_y": 363,
+      "name": "敏行楼",
+      "note": "图上北半部右侧教学楼组的下方一栋。",
+      "beautified_pixel_x": 1068,
+      "beautified_pixel_y": 556
+    },
+    "shixun-1": {
+      "pixel_x": 571,
+      "pixel_y": 351,
+      "name": "实训中心（中）",
+      "note": "图上北半部偏右，厚德楼南侧、广场西侧。",
+      "beautified_pixel_x": 886,
+      "beautified_pixel_y": 533
+    },
+    "shixun-2": {
+      "pixel_x": 231,
+      "pixel_y": 585,
+      "name": "实训中心（南）",
+      "note": "图上南半部西侧，励志楼上方、月牙形水面西侧。",
+      "beautified_pixel_x": 358,
+      "beautified_pixel_y": 915
+    },
+    "lizhi": {
+      "pixel_x": 231,
+      "pixel_y": 621,
+      "name": "励志楼",
+      "note": "图上南半部西侧，实训中心下方、博学楼上方。",
+      "beautified_pixel_x": 358,
+      "beautified_pixel_y": 977
+    },
+    "boxue": {
+      "pixel_x": 231,
+      "pixel_y": 654,
+      "name": "博学楼",
+      "note": "图上南半部西侧，励志楼下方、明德楼上方。",
+      "beautified_pixel_x": 358,
+      "beautified_pixel_y": 1032
+    },
+    "mingde": {
+      "pixel_x": 231,
+      "pixel_y": 689,
+      "name": "明德楼",
+      "note": "图上南半部西侧教学楼组最下方。",
+      "beautified_pixel_x": 358,
+      "beautified_pixel_y": 1088
+    },
+    "tushuguan": {
+      "pixel_x": 549,
+      "pixel_y": 679,
+      "name": "图书馆",
+      "note": "图上南半部偏右，游泳馆下方的蓝色矩形区域。",
+      "beautified_pixel_x": 850,
+      "beautified_pixel_y": 1056
+    },
+    "canyin-1": {
+      "pixel_x": 384,
+      "pixel_y": 531,
+      "name": "第一餐厅",
+      "note": "图上南半部中间偏西，西篮球场下方。",
+      "beautified_pixel_x": 606,
+      "beautified_pixel_y": 830
+    },
+    "canyin-2": {
+      "pixel_x": 572,
+      "pixel_y": 225,
+      "name": "第二餐厅",
+      "note": "图上北半部沁园宿舍内部，厚德楼上方。",
+      "beautified_pixel_x": 884,
+      "beautified_pixel_y": 338
+    },
+    "tiyuchang": {
+      "pixel_x": 482,
+      "pixel_y": 502,
+      "name": "体育场",
+      "note": "图上光明路南侧的红色田径场，两个篮球场之间。",
+      "beautified_pixel_x": 750,
+      "beautified_pixel_y": 795
+    },
+    "caochang-2": {
+      "pixel_x": 235,
+      "pixel_y": 238,
+      "name": "第二体育场",
+      "note": "图上左上部的红色长圆形场地，综合教学中心西侧。",
+      "beautified_pixel_x": 350,
+      "beautified_pixel_y": 368
+    },
+    "lanqiu-1": {
+      "pixel_x": 389,
+      "pixel_y": 466,
+      "name": "篮球场（西）",
+      "note": "图上光明路南侧，体育场西边、第一餐厅上方。",
+      "beautified_pixel_x": 600,
+      "beautified_pixel_y": 723
+    },
+    "lanqiu-2": {
+      "pixel_x": 552,
+      "pixel_y": 509,
+      "name": "篮球场（东）",
+      "note": "图上光明路南侧，体育场东边。",
+      "beautified_pixel_x": 856,
+      "beautified_pixel_y": 790
+    },
+    "youyong": {
+      "pixel_x": 549,
+      "pixel_y": 603,
+      "name": "游泳馆",
+      "note": "图上南半部偏右，图书馆上方、圆形水面东侧。",
+      "beautified_pixel_x": 856,
+      "beautified_pixel_y": 937
+    },
+    "wangqiu-1": {
+      "pixel_x": 446,
+      "pixel_y": 672,
+      "name": "百草园",
+      "note": "图上南半部中间偏右的绿色园区，文字为百草园；旧ID保留以兼容个人行程，不再称网球场。",
+      "beautified_pixel_x": 714,
+      "beautified_pixel_y": 1044
+    },
+    "guangchang": {
+      "pixel_x": 638,
+      "pixel_y": 348,
+      "name": "广场",
+      "note": "图上北半部偏右，实训中心东侧、右侧教学楼西边。",
+      "beautified_pixel_x": 992,
+      "beautified_pixel_y": 537
+    },
+    "tingche-2": {
+      "pixel_x": 499,
+      "pixel_y": 352,
+      "name": "停车场",
+      "note": "图上北半部中间，综合教学中心东侧、实训中心西侧。",
+      "beautified_pixel_x": 772,
+      "beautified_pixel_y": 537
+    },
+    "yuelianghu": {
+      "pixel_x": 301,
+      "pixel_y": 594,
+      "name": "月亮湖（形状参考）",
+      "note": "图上南半部西侧的月牙形水面；湖名为历史资料称呼，本张原图未清晰标注名称。",
+      "beautified_pixel_x": 476,
+      "beautified_pixel_y": 938
+    },
+    "taiyanghu": {
+      "pixel_x": 493,
+      "pixel_y": 601,
+      "name": "太阳湖（形状参考）",
+      "note": "图上南半部偏右的圆形水面；湖名为历史资料称呼，本张原图未清晰标注名称。",
+      "beautified_pixel_x": 748,
+      "beautified_pixel_y": 938
+    },
+    "guangminglu": {
+      "pixel_x": 405,
+      "pixel_y": 407,
+      "name": "光明路",
+      "note": "图上贯通东西的中部道路，分隔校园南北两片区域。",
+      "beautified_pixel_x": 627,
+      "beautified_pixel_y": 635
+    }
+  },
+  "beautified_width": 1254,
+  "beautified_height": 1254
+}

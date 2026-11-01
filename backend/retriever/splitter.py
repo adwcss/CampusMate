@@ -24,7 +24,7 @@ def split_all(docs_dir):
         if verified:
             caveat = "学校官网服务入口于2026-10-08核对；具体通知与收费以官网最新发布为准。"
         elif kind == "map_reference":
-            caveat = "交接地图为示意，图上位置不等同实地导航；建筑与开放情况以现场为准。"
+            caveat = "本轮用户上传地图为示意，非已核实的官方测绘文件；图上位置不等同实地导航，细小文字与建筑开放情况请对照原图及现场。"
         elif kind == "third_party":
             caveat = "含第三方参考，办理材料和政策以当年学校官方通知为准。"
         if filename in HISTORICAL:
@@ -37,6 +37,6 @@ def split_all(docs_dir):
             chunk_id = hashlib.sha256((filename + "\n" + part).encode()).hexdigest()[:16]
             chunks.append({"id": chunk_id, "source": filename, "section": section, "text": part,
                            "source_header": header, "urls": urls, "source_type": kind,
-                           "effective_year": HISTORICAL.get(filename), "collected_at": "2026-10-11" if filename.startswith("大学生") or filename == "宿舍床位选择参考.md" else "2026-10-07" if not verified else "2026-10-08",
+                           "effective_year": HISTORICAL.get(filename), "collected_at": "2026-11-01" if filename == "校园地图.md" else "2026-10-11" if filename.startswith("大学生") or filename == "宿舍床位选择参考.md" else "2026-10-07" if not verified else "2026-10-08",
                            "verified": verified, "caveat": caveat})
     return chunks
