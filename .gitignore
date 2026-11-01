@@ -1,0 +1,25 @@
+# 环境变量 / 密钥文件
+.env
+backend/.env
+*.env
+
+# Python 虚拟环境
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Chroma 向量库持久化
+backend/vectorstore/db/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDE
+.idea/
+*.swp
+.runtime/
+output/
+tmp/
+.venv-*/
+*.log
