@@ -6,7 +6,7 @@ import re
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-INPUTS = Path("C:/Users/刘江涵/Documents/xwechat_files/wxid_7tc178nztdo722_a705/msg/file/2026-10")
+INPUTS = Path("C:/Users/<用户>/Documents/xwechat_files/wxid_***/msg/file/2026-10")
 
 
 def main():
