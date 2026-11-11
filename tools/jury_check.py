@@ -48,6 +48,10 @@ def verify():
                 assert "event: done" in body and all(f"【{i}】" in guided["content"] for i in (1, 2, 3))
                 assert [source["effective_year"] for source in guided["sources"]] == [None, 2024, 2024]
                 assert len(guided["arrival_actions"]) == 3 and "19点" not in guided["content"]
+                request("/api/ask", {"session": session, "question": "报到点在哪里？"})
+                location = json.loads(request(f"/api/history?session={session}"))["messages"][-1]
+                assert "本学院的报到点" in location["content"] and "2024 级参考" in location["content"]
+                assert "不代表2026级或以后安排" not in location["content"]
                 selection = {"session": session, "answer_id": guided["id"], "selected": ["identity", "travel"]}
                 saved = json.loads(request("/api/arrival/from-answer", selection))
                 assert saved["added"] == 2 and len(saved["arrival_task_ids"]) == 2
@@ -82,6 +86,7 @@ def verify():
         "elapsed_seconds": round(perf_counter() - started, 3), "remote_model_calls": 0,
         "checks": ["本地首页及健康检查", "首次问答及来源", "模拟官网不可达与本地回退",
                    "复合报到问答分段引用、选项保存、重复保存及会话隔离",
+                   "报到地点包含办理建议与往年参考标注",
                    "清单写入及重启后读取", "二维地图和三维数据", "封面运行库"],
         "scope": "自动化 HTTP 检查；联网故障使用模拟响应；不含下载安装 Python 与人工浏览器操作时间。",
     }
