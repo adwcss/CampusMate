@@ -1,6 +1,6 @@
 "use strict";
 const Appearance = (() => {
-  const KEY = "freshman-appearance-v1", SEEN = "freshman-intro-campus-v2";
+  const KEY = "freshman-appearance-v1", SEEN = "freshman-interactive-cover-v3";
   const DEFAULTS = {mode:"light",source:"preset",shade:55,blur:4,position:"center"};
   const PAGE_ART = Object.freeze({
     arrival:"mascot-wave", preparation:"chibi-ready", chat:"chibi-think",
@@ -12,7 +12,7 @@ const Appearance = (() => {
   const query = selector => document.querySelector(selector);
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   let settings, imageUrl="", imageName="", imageBusy=false, introTimer, introColorTimer, introRevision=0, imageRevision=0;
-  let mascotReady, mascotAssetRevision=0, introReturnFocus;
+  let mascotReady, introReturnFocus;
   function normalize(value={}) {
     if (!value || typeof value!=="object" || Array.isArray(value)) value={};
     const number=(key,min,max)=>typeof value[key]==="number"&&Number.isFinite(value[key])?Math.round(Math.max(min,Math.min(max,value[key]))):DEFAULTS[key];
@@ -124,38 +124,22 @@ const Appearance = (() => {
   }
   function finishIntro() {
     introRevision++;clearTimeout(introTimer);clearTimeout(introColorTimer);query("#intro-dialog").classList.remove("intro-playing","intro-settled");query("#intro-dialog").close();
-    (introReturnFocus?.isConnected&&introReturnFocus!==document.body?introReturnFocus:query("#appearance-open")).focus({preventScroll:true});
+    if(typeof changeView==="function")changeView("journey");
+    (query("#journey-start")||query("#appearance-open")).focus({preventScroll:true});
     try { sessionStorage.setItem(SEEN,"1"); } catch { /* Animation preference is optional. */ }
   }
   function prepareMascot() {
     if(mascotReady) return mascotReady;
     const dialog=query("#intro-dialog"), svg=query("#intro-lines"), portrait=query("#intro-portrait");
-    const revision=++mascotAssetRevision;
+
     svg.replaceChildren();dialog.classList.remove("mascot-loaded","intro-no-lines","intro-no-portrait");
-    portrait.src="/assets/school-mascot.png";
-    mascotReady=Promise.allSettled([
-      fetch("/assets/mascot-lines.json").then(response=>{if(!response.ok)throw new Error("Outline unavailable");return response.json();}).then(data=>{
-        if(revision!==mascotAssetRevision)return;
-        if(!Array.isArray(data.viewBox)||data.viewBox.length!==4||!data.viewBox.every(Number.isFinite)||!Array.isArray(data.paths)||data.paths.length>1600) throw new Error("Invalid outline");
-        svg.setAttribute("viewBox",data.viewBox.join(" "));
-        const strokes=document.createDocumentFragment();
-        data.paths.forEach((d,index)=>{
-          if(typeof d!=="string"||d.length>20000||!/^[MLZ0-9., \-]+$/.test(d))throw new Error("Invalid stroke");
-          const path=document.createElementNS("http://www.w3.org/2000/svg","path");
-          path.setAttribute("d",d);path.setAttribute("pathLength","1");path.classList.add("mascot-stroke");
-          path.style.setProperty("--draw-delay",`${Math.round(index/data.paths.length*500)}ms`);strokes.append(path);
-        });
-        svg.append(strokes);
-      }),
-      portrait.decode().then(()=>{if(revision===mascotAssetRevision)dialog.classList.add("mascot-loaded");})
-    ]).then(results=>{
-      if(revision!==mascotAssetRevision)return;
-      if(results[0].status!=="fulfilled"){svg.replaceChildren();dialog.classList.add("intro-no-lines");}
-      if(results[1].status!=="fulfilled")dialog.classList.add("intro-no-portrait");
-    });
+    portrait.src="/assets/cover-portrait-v3.png";
+    dialog.classList.add("intro-no-lines");
+    mascotReady=portrait.decode().then(()=>dialog.classList.add("mascot-loaded")).catch(()=>dialog.classList.add("intro-no-portrait"));
     return mascotReady;
   }
   function startIntro(force=false) {
+    if(new URLSearchParams(location.search).get("cover")==="1")force=true;
     if (typeof selectedSchoolId !== "undefined" && selectedSchoolId !== "hnvust") return;
     if(query("#intro-dialog").open) return;
     let seen=false;try { seen=sessionStorage.getItem(SEEN)==="1"; } catch { /* Use one bounded entrance when storage is unavailable. */ }
@@ -165,10 +149,9 @@ const Appearance = (() => {
     introReturnFocus=document.activeElement;
     dialog.showModal();query("#intro-skip").focus({preventScroll:true});
     // Always allow immediate skip, including while local illustration assets load.
-    introTimer=setTimeout(finishIntro,4200);
     Promise.race([prepareMascot(),new Promise(resolve=>setTimeout(resolve,400))]).then(()=>{
       if(revision!==introRevision||!dialog.open)return;
-      dialog.classList.add("intro-playing");clearTimeout(introTimer);introTimer=setTimeout(finishIntro,3600);
+      dialog.classList.add("intro-playing");clearTimeout(introTimer);
       // Some embedded browsers throttle CSS timelines. Always reveal a complete welcome.
       introColorTimer=setTimeout(()=>{if(revision===introRevision&&dialog.open)dialog.classList.add("intro-settled");},2500);
     });
@@ -183,6 +166,7 @@ const Appearance = (() => {
     for(const key of ["shade","blur","position"]) query(`#appearance-${key}`).addEventListener(key==="shade"||key==="blur"?"input":"change",event=>update({[key]:key==="shade"||key==="blur"?Number(event.target.value):event.target.value}));
     query("#appearance-preview-intro").addEventListener("click",()=>startIntro(true));
     query("#intro-skip").addEventListener("click",finishIntro);
+    query("#intro-enter").addEventListener("click",finishIntro);
     query("#intro-dialog").addEventListener("cancel",event=>{event.preventDefault();finishIntro();});
     query("#appearance-use-preset").addEventListener("click",()=>update({source:"preset"}));
     query("#appearance-use-image").addEventListener("click",()=>{if(imageUrl)update({source:"image"});});
@@ -199,3 +183,5 @@ const Appearance = (() => {
   return {init,open,showView,refreshControls,normalize,getSettings:()=>({...settings})};
 })();
 Appearance.init();
+
+

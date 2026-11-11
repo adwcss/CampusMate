@@ -1,4 +1,4 @@
-"""Search is a separate service API; no LLM-generated search and no page scraping."""
+"""Independent search providers for official campus sources."""
 from datetime import datetime, timezone
 import hashlib
 import html
@@ -8,6 +8,7 @@ import threading
 import urllib.request
 from urllib.parse import urlencode
 from .schools import official_url
+from .official_notices import OfficialNotices
 
 TOPICS = [(r"军训", "新生 军训 通知"), (r"费用|多少钱|学费|住宿费|收费|缴费", "新生 收费 通知"),
           (r"宿舍|床位", "新生 宿舍 通知"), (r"贷款|资助|助学|绿色通道", "新生 资助 绿色通道"),
@@ -31,14 +32,20 @@ class SearchService:
         self.settings, self.school = settings, school
         self.calls = 0
         self.lock = threading.Lock()
+        self.notices = OfficialNotices(school, urllib.request.build_opener(NoRedirect()))
 
     def enabled(self):
+        if self.settings.search_provider == "official":
+            return self.settings.allow_search and bool(self.notices.pages)
         return bool(self.settings.allow_search and self.settings.search_provider == "brave"
                     and self.settings.search_key and self.school["official_domains"])
 
     def search(self, query):
         if not self.enabled():
             return [], "not_configured"
+        if self.settings.search_provider == "official":
+            with self.lock:
+                return self.notices.search(query)
         public_query = search_query(query, self.school)
         url = "https://api.search.brave.com/res/v1/web/search?" + urlencode({"q": public_query, "count": 5, "text_decorations": "false"})
         request = urllib.request.Request(url, headers={"Accept": "application/json", "X-Subscription-Token": self.settings.search_key})

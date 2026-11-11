@@ -229,7 +229,7 @@ def handler_for(application):
                     if url.path == "/api/history":
                         return self.json({"messages": application.store.history(session)})
                     if url.path == "/api/checklist":
-                        return self.json({"checked": application.store.checklist(session)})
+                        return self.json({"checked": application.store.checklist(session), "arrival_task_ids": application.store.arrival_task_ids(session)})
                     return self.json({"version": __version__, "messages": application.store.history(session, 100), "checklist": application.store.checklist(session), "profile": application.store.profile(session), "saved_items": application.experience.saved_items(application.store.saved(session)), "tasks": application.store.tasks(session), "rehearsal": application.store.rehearsal(session), "itinerary": application.store.itinerary(session), "preparation": application.store.preparation(session), "note": "本地资料参考，非学校正式通知；收藏床位不代表已预订；任务日期为个人计划；地图连线为探索顺序"})
                 if url.path == "/api/sources":
                     documents = {}
@@ -243,11 +243,24 @@ def handler_for(application):
                          "/dorm-images/siren-env.jpg": (ROOT / "frontend/images/dorm/四人间床位.jpg", "image/jpeg"), "/dorm-images/liuren-env.jpg": (ROOT / "frontend/images/dorm/六人间床位.jpg", "image/jpeg"), "/dorm-images/siren-plan.jpg": (ROOT / "frontend/images/dorm/四人宿舍俯视图.jpg", "image/jpeg"), "/dorm-images/liuren-plan.jpg": (ROOT / "frontend/images/dorm/六人宿舍俯视图.jpg", "image/jpeg"), "/dorm-images/siren-toilet.jpg": (ROOT / "四人间卫生间.jpg", "image/jpeg"), "/dorm-images/siren-sink.jpg": (ROOT / "四人间洗手台.jpg", "image/jpeg"), "/dorm-images/liuren-bath.jpg": (ROOT / "六人间浴室洗手台.jpg", "image/jpeg"), "/dorm-images/laundry.jpg": (ROOT / "四人间六人间洗衣房.jpg", "image/jpeg"),
                          "/club-images/club-01.png": (ROOT / "frontend/images/club/club-01.png", "image/png"), "/club-images/club-02.png": (ROOT / "frontend/images/club/club-02.png", "image/png"), "/club-images/club-03.png": (ROOT / "frontend/images/club/club-03.png", "image/png"), "/club-images/club-04.png": (ROOT / "frontend/images/club/club-04.png", "image/png"), "/club-images/club-05.png": (ROOT / "frontend/images/club/club-05.png", "image/png"), "/club-images/club-06.png": (ROOT / "frontend/images/club/club-06.png", "image/png"), "/club-images/club-07.png": (ROOT / "frontend/images/club/club-07.png", "image/png"), "/club-images/club-08.png": (ROOT / "frontend/images/club/club-08.png", "image/png"), "/club-images/club-09.png": (ROOT / "frontend/images/club/club-09.png", "image/png"), "/club-images/club-10.png": (ROOT / "frontend/images/club/club-10.png", "image/png"), "/club-images/club-11.png": (ROOT / "frontend/images/club/club-11.png", "image/png"), "/club-images/club-12.png": (ROOT / "frontend/images/club/club-12.png", "image/png"), "/club-images/club-13.png": (ROOT / "frontend/images/club/club-13.png", "image/png"), "/club-images/club-14.png": (ROOT / "frontend/images/club/club-14.png", "image/png"), "/club-images/club-15.png": (ROOT / "frontend/images/club/club-15.png", "image/png"), "/club-images/club-16.png": (ROOT / "frontend/images/club/club-16.png", "image/png"),
                          "/union-images/union-01.png": (ROOT / "frontend/images/union/union-01.png", "image/png"), "/union-images/union-02.png": (ROOT / "frontend/images/union/union-02.png", "image/png"), "/union-images/union-03.png": (ROOT / "frontend/images/union/union-03.png", "image/png"), "/union-images/union-04.png": (ROOT / "frontend/images/union/union-04.png", "image/png"), "/union-images/union-05.png": (ROOT / "frontend/images/union/union-05.png", "image/png"), "/union-images/union-06.png": (ROOT / "frontend/images/union/union-06.png", "image/png"), "/union-images/union-07.png": (ROOT / "frontend/images/union/union-07.png", "image/png"), "/union-images/union-08.png": (ROOT / "frontend/images/union/union-08.png", "image/png"), "/union-images/union-09.png": (ROOT / "frontend/images/union/union-09.png", "image/png"), "/union-images/union-10.png": (ROOT / "frontend/images/union/union-10.png", "image/png"), "/union-images/union-11.png": (ROOT / "frontend/images/union/union-11.png", "image/png"), "/union-images/union-12.png": (ROOT / "frontend/images/union/union-12.png", "image/png"), "/union-images/union-13.png": (ROOT / "frontend/images/union/union-13.png", "image/png"), "/union-images/union-14.png": (ROOT / "frontend/images/union/union-14.png", "image/png")}
+                for kind, items in (("club", CLUBS), ("union", ORGS)):
+                    for item in items:
+                        name = item["logo"].rsplit("/", 1)[-1]
+                        files[item["logo"]] = (ROOT / "frontend/images" / kind / name, "image/svg+xml")
+                for name, mime in {"index.html": "text/html", "campus.css": "text/css", "campus.js": "text/javascript", "three.min.js": "text/javascript", "places.json": "application/json"}.items():
+                    files["/campus3d/" + name] = (ROOT / "frontend/campus3d" / name, mime + "; charset=utf-8")
+                files["/campus3d/"] = (ROOT / "frontend/campus3d/index.html", "text/html; charset=utf-8")
                 files["/orientation.js"] = (ROOT / "frontend/orientation.js", "text/javascript; charset=utf-8")
                 files["/preparation.js"] = (ROOT / "frontend/preparation.js", "text/javascript; charset=utf-8")
                 files["/preparation.css"] = (ROOT / "frontend/preparation.css", "text/css; charset=utf-8")
                 files["/appearance.js"] = (ROOT / "frontend/appearance.js", "text/javascript; charset=utf-8")
                 files["/appearance.css"] = (ROOT / "frontend/appearance.css", "text/css; charset=utf-8")
+                files["/cover.css"] = (ROOT / "frontend/cover.css", "text/css; charset=utf-8")
+                files["/cover.js"] = (ROOT / "frontend/cover.js", "text/javascript; charset=utf-8")
+                files["/assets/pixi-7.4.3.min.js"] = (ROOT / "frontend/assets/pixi-7.4.3.min.js", "text/javascript; charset=utf-8")
+                files["/assets/pixi-csp-7.4.3.min.js"] = (ROOT / "frontend/assets/pixi-csp-7.4.3.min.js", "text/javascript; charset=utf-8")
+                files["/journey.css"] = (ROOT / "frontend/journey.css", "text/css; charset=utf-8")
+                files["/journey.js"] = (ROOT / "frontend/journey.js", "text/javascript; charset=utf-8")
                 files["/campusmate.js"] = (ROOT / "frontend/campusmate.js", "text/javascript; charset=utf-8")
                 files["/campusmate.css"] = (ROOT / "frontend/campusmate.css", "text/css; charset=utf-8")
                 if application.school_id == DEFAULT_SCHOOL:
@@ -255,6 +268,8 @@ def handler_for(application):
                     files["/assets/maps/hnvust-map-original.png"] = (ROOT / "frontend/assets/maps/hnvust-map-original.png", "image/png")
                     files["/assets/maps/hnvust-map-beautified.svg"] = (ROOT / "frontend/assets/maps/hnvust-map-beautified.svg", "image/svg+xml; charset=utf-8")
                 files["/assets/school-mascot.png"] = (ROOT / "frontend/assets/school-mascot.png", "image/png")
+                files["/assets/cover-portrait-v2.png"] = (ROOT / "frontend/assets/cover-portrait-v2.png", "image/png")
+                files["/assets/cover-portrait-v3.png"] = (ROOT / "frontend/assets/cover-portrait-v3.png", "image/png")
                 files["/assets/mascot-lines.json"] = (ROOT / "frontend/assets/mascot-lines.json", "application/json; charset=utf-8")
                 for pose in ("wave", "reading", "point"):
                     files[f"/assets/mascot-{pose}.png"] = (ROOT / f"frontend/assets/mascot-{pose}.png", "image/png")
@@ -285,6 +300,15 @@ def handler_for(application):
                 application = self.context(payload)
                 session = valid_session(payload.get("session", ""))
                 path = urlsplit(self.path).path
+                if path == "/api/arrival/from-answer":
+                    answer_id, selected = payload.get("answer_id"), payload.get("selected")
+                    if not isinstance(answer_id, str) or not isinstance(selected, list) or not 1 <= len(selected) <= 3 or not all(isinstance(key, str) for key in selected):
+                        raise ValueError("请选择要加入的准备事项。")
+                    actions = application.store.answer_actions(session, answer_id)
+                    if not set(selected) <= {task["arrival_template"] for task in actions}:
+                        raise ValueError("请从当前回答重新选择准备事项。")
+                    result = application.store.merge_arrival_tasks(session, [task for task in actions if task["arrival_template"] in selected])
+                    return self.json({**result, "tasks": application.store.tasks(session), "arrival_task_ids": application.store.arrival_task_ids(session)})
                 if path in {"/api/arrival/preview", "/api/arrival/generate"}:
                     from .arrival import arrival_tasks
                     tasks = arrival_tasks(payload.get("profile"), application.school)
@@ -362,6 +386,12 @@ def handler_for(application):
                 answer, mode = application.answerer.generate(question.strip(), prepared)
                 application.store.save(session, "user", question.strip())
                 response_payload = {"school_id": application.school_id, "sources": prepared["sources"], "warnings": prepared["warnings"], "mode": mode, "query": prepared["query"], "remote_attempted": prepared["remote_attempted"], "web_used": prepared["web_used"], "retrieval_mode": retrieval_mode, "search_status": prepared.get("search_status", "not_requested"), "conflicts": prepared.get("conflicts", []), "check_links": prepared["check_links"]}
+                if guided := prepared["guided_arrival"]:
+                    from .arrival import arrival_tasks
+                    response_payload["arrival_actions"] = [
+                        task for task in arrival_tasks({"long_distance": True}, application.school)
+                        if task["arrival_template"] in guided[2]
+                    ]
                 answer_id = application.store.save(session, "assistant", answer, response_payload)
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream; charset=utf-8")

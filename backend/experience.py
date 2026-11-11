@@ -58,7 +58,8 @@ class Experience:
         for kind, items, filename in [("club", CLUBS, "大学生社团指南.md"), ("union", ORGS, "大学生学生会与学生组织指南.md")]:
             for item in items:
                 key = identity(kind, item["name"])
-                self.items[key] = {**item, "id": key, "kind": kind, "intro": item.get("intro", item.get("summary", "")), "source": filename, "note": REFERENCE_NOTE}
+                note = item["advice"]
+                self.items[key] = {**item, "id": key, "kind": kind, "intro": item.get("intro", item.get("summary", "")), "source": filename, "note": note}
 
     def catalog(self):
         return {"items": list(self.items.values()), "interests": [{"id": k, "label": v[0]} for k, v in INTERESTS.items()], "priorities": PRIORITIES, "colleges": list(COMPETITIONS), "note": REFERENCE_NOTE}
@@ -107,7 +108,7 @@ class Experience:
         for kind in groups:
             groups[kind].sort(key=lambda x: (-x["score"], x["id"]))
             groups[kind] = groups[kind][:6]
-        return {"groups": groups, "profile": profile, "method": "本地规则匹配。分数仅用于同类排序，不是适配概率、录取率或官方评定；同分并列，依据来自交接资料。"}
+        return {"groups": groups, "profile": profile, "method": "根据兴趣、可投入时间和指南条目进行本地规则匹配。分数用于同类排序，同分并列。"}
 
     def saved_items(self, rows):
         result = []
@@ -119,9 +120,11 @@ class Experience:
 
     @staticmethod
     def actions(item):
+        if item["kind"] == "union":
+            return [item["advice"], "准备一段经历介绍和一份相关小作品", "把活动时段和课表放在一起，安排参与时间"]
+        if item["kind"] == "club":
+            return [item["advice"], "浏览学校或学院发布的活动与招新公告", "把活动时段和课表放在一起，安排参与时间"]
         return {
             "bed": ["核对学校分配规则与实际房型", "现场看门窗、卫浴和安全通道", "与室友沟通作息，再确认实际位置"],
             "contest": ["向学院核对参赛资格、校内选拔与认定", "阅读主办方当届通知，记录真实截止日期", "找一份往届题目或项目样例，完成小练习"],
-            "club": ["向团委确认本校是否开设及招新安排", "参加一次体验活动，问清费用与时间投入", "结合课表确定是否持续参与"],
-            "union": ["确认本校部门名称、岗位与招新条件", "准备一段经历介绍和一份相关小作品", "了解值班和活动安排，再决定报名"],
         }[item["kind"]]

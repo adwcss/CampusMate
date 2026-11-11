@@ -46,21 +46,23 @@ function choiceActions(item) {
 
 function decisionCard(item) {
   const card = element("article", "decision-card");
+  const participation = Boolean(item.advice);
+  if (participation) card.classList.add("participation-card");
   const head = element("div", "decision-head");
   if (item.logo) {
-    const logo = element("img", "club-logo");
-    logo.src = item.logo; logo.alt = "交接示意徽章"; logo.width = 52; logo.height = 52; logo.loading = "lazy";
+    const logo = element("img", participation ? "participation-logo" : "club-logo");
+    logo.src = item.logo; logo.alt = ""; logo.width = 52; logo.height = 52; logo.loading = "lazy";
     head.append(logo);
   }
   const title = element("h3", "", item.name);
   head.append(title);
-  card.append(head, element("p", "decision-category", item.kind === "contest" ? item.categories.join(" / ") : item.category));
+  card.append(head, element("p", "decision-category", item.direction ? `${item.direction} · ${item.category}` : item.kind === "contest" ? item.categories.join(" / ") : item.category));
   if (item.score !== undefined) card.append(element("p", "match-score", `参考排序分 ${item.score} · 同分并列`));
   const details = element("details", "decision-details");
-  details.append(element("summary", "", "查看内容与适合人群"), element("p", "", item.intro));
-  if (item.activities) details.append(element("p", "", `典型活动：${item.activities.join("、")}`));
-  if (item.works) details.append(element("p", "", `典型工作：${item.works}`));
-  if (item.audience || item.fit) details.append(element("p", "", `适合人群：${item.audience || item.fit}`));
+  details.append(element("summary", "", participation ? "查看实践内容与适合兴趣" : "查看内容与适合人群"), element("p", "", item.intro));
+  if (item.activities) details.append(element("p", "", `${participation ? "体验活动" : "典型活动"}：${item.activities.join("、")}`));
+  if (item.works) details.append(element("p", "", `${participation ? "任务练习" : "典型工作"}：${item.works}`));
+  if (item.audience || item.fit) details.append(element("p", "", `${participation ? "适合兴趣" : "适合人群"}：${item.audience || item.fit}`));
   if (item.pros) details.append(element("p", "", `位置参考：${item.pros.join("；")}`));
   if (item.kind === "contest") details.append(element("p", "", `原指南参考标签：${item.level}。当届参赛条件、费用、赛程与本校认定待核对。`));
   card.append(details);
@@ -70,7 +72,11 @@ function decisionCard(item) {
     card.append(reasons);
   }
   const cautions = item.cautions || (item.cons ? [item.note, ...item.cons] : [item.note]);
-  card.append(element("p", "decision-caution", cautions.join(" ")));
+  if (participation) {
+    const advice = element("div", "participation-advice");
+    advice.append(element("strong", "", "入门建议"), element("p", "", item.advice));
+    card.append(advice);
+  } else card.append(element("p", "decision-caution", cautions.join(" ")));
   if (item.official_url) {
     const link = safeLink(item.official_url);
     if (link) { link.textContent = "主办方入口（当届规则另核对）"; card.append(link); }
@@ -128,7 +134,8 @@ function showComparison() {
   } else {
     rows.push(["活动 / 工作", i => (i.activities || []).join("、") || i.works || "当届内容待核对"], ["适合人群", i => i.audience || i.fit || "请先了解准备基础"]);
   }
-  rows.push(["资料与限制", i => `${i.source}。${i.note}`]);
+  if (items[0].advice) rows.push(["入门建议", i => i.advice], ["参考来源", i => i.source]);
+  else rows.push(["资料与限制", i => `${i.source}。${i.note}`]);
   const body = element("tbody");
   rows.forEach(([label, get]) => {
     const row = element("tr"); const th = element("th", "", label); th.scope = "row"; row.append(th);

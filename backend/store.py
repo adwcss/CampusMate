@@ -41,9 +41,22 @@ class Store:
             db.close()
 
     def history(self, session, limit=60):
+        from .retriever.splitter import ARRIVAL_REFERENCE_ADVICE, LEGACY_ARRIVAL_CAVEAT
+
         with self.connect() as db:
             rows = db.execute("SELECT * FROM messages WHERE session=? ORDER BY rowid DESC LIMIT ?", (session, limit)).fetchall()
-        return [{"id": r["id"], "role": r["role"], "content": r["content"], **json.loads(r["payload"])} for r in reversed(rows)]
+        messages = []
+        for row in reversed(rows):
+            message = {"id": row["id"], "role": row["role"], "content": row["content"], **json.loads(row["payload"])}
+            if row["role"] == "assistant":
+                message["content"] = message["content"].replace(LEGACY_ARRIVAL_CAVEAT, ARRIVAL_REFERENCE_ADVICE)
+                for source in message.get("sources", []):
+                    if source.get("caveat") == LEGACY_ARRIVAL_CAVEAT:
+                        source["caveat"] = ARRIVAL_REFERENCE_ADVICE
+                if "warnings" in message:
+                    message["warnings"] = [ARRIVAL_REFERENCE_ADVICE if warning == LEGACY_ARRIVAL_CAVEAT else warning for warning in message["warnings"]]
+            messages.append(message)
+        return messages
 
     def save(self, session, role, content, payload=None):
         message_id = str(uuid.uuid4())
@@ -51,6 +64,12 @@ class Store:
             db.execute("INSERT INTO messages(id,session,role,content,payload) VALUES(?,?,?,?,?)", (message_id, session, role, content, json.dumps(payload or {}, ensure_ascii=False)))
             db.execute("DELETE FROM messages WHERE session=? AND id NOT IN (SELECT id FROM messages WHERE session=? ORDER BY rowid DESC LIMIT 100)", (session, session))
         return message_id
+
+    def answer_actions(self, session, answer_id):
+        with self.connect() as db:
+            row = db.execute("SELECT payload FROM messages WHERE session=? AND id=? AND role='assistant'",
+                             (session, answer_id)).fetchone()
+        return json.loads(row["payload"]).get("arrival_actions", []) if row else []
 
     def checklist(self, session):
         with self.connect() as db:
@@ -98,6 +117,10 @@ class Store:
     def tasks(self, session):
         with self.connect() as db:
             return [json.loads(r["payload"]) for r in db.execute("SELECT payload FROM personal_tasks WHERE session=? ORDER BY rowid", (session,))]
+
+    def arrival_task_ids(self, session):
+        with self.connect() as db:
+            return [r["task_id"] for r in db.execute("SELECT task_id FROM arrival_generated WHERE session=?", (session,))]
 
     def put_task(self, session, task):
         task = dict(task)

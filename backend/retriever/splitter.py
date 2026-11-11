@@ -5,7 +5,10 @@ import re
 
 DOC_FILES = ["新生手册.txt", "招生简章.md", "学校概况.md", "校园地图.md", "入学指南补充.md", "档案与党团关系转接.md", "资助与绿色通道.md", "军训安排.md", "户口迁移.md", "入学准备清单.md", "报到准备材料.md", "院系专业设置.md", "宿舍水电与校园生活.md", "学校地址与导航.md", "官方服务入口.md", "大学生竞赛指南.md", "大学生社团指南.md", "大学生学生会与学生组织指南.md", "宿舍床位选择参考.md"]
 HISTORICAL = {"新生手册.txt": 2024, "入学指南补充.md": 2024, "学校地址与导航.md": 2024, "军训安排.md": 2024}
-THIRD_PARTY = {"入学准备清单.md", "报到准备材料.md", "宿舍水电与校园生活.md", "户口迁移.md", "资助与绿色通道.md", "军训安排.md", "大学生竞赛指南.md", "大学生社团指南.md", "大学生学生会与学生组织指南.md", "宿舍床位选择参考.md"}
+ARRIVAL_REFERENCE_ADVICE = "可参考 2024 级资料了解报到流程。出发前请查本届入学须知，核对报到地点、时间、接站和缴费方式。"
+LEGACY_ARRIVAL_CAVEAT = "包含2024级报到参考，不代表2026级或以后安排；时间、接站、缴费方式须核对当年通知。"
+PARTICIPATION_GUIDES = {"大学生社团指南.md", "大学生学生会与学生组织指南.md"}
+THIRD_PARTY = {"入学准备清单.md", "报到准备材料.md", "宿舍水电与校园生活.md", "户口迁移.md", "资助与绿色通道.md", "军训安排.md", "大学生竞赛指南.md", "宿舍床位选择参考.md"} | PARTICIPATION_GUIDES
 
 
 def split_all(docs_dir):
@@ -20,15 +23,17 @@ def split_all(docs_dir):
         urls = list(dict.fromkeys(url.rstrip("；;。），、") for url in re.findall(r"https?://[^\s<>]+", header)))
         verified = filename == "官方服务入口.md"
         kind = "official_verified" if verified else "map_reference" if filename == "校园地图.md" else "third_party" if filename in THIRD_PARTY else "inherited_reference"
-        caveat = "本资料为交接参考，信息尚未逐项核对当年官方通知。"
+        caveat = "可用交接资料了解办理流程，具体安排请查看本届学校通知。"
         if verified:
             caveat = "学校官网服务入口于2026-10-08核对；具体通知与收费以官网最新发布为准。"
         elif kind == "map_reference":
             caveat = "本轮用户上传地图为示意，非已核实的官方测绘文件；图上位置不等同实地导航，细小文字与建筑开放情况请对照原图及现场。"
         elif kind == "third_party":
             caveat = "含第三方参考，办理材料和政策以当年学校官方通知为准。"
+        if filename in PARTICIPATION_GUIDES:
+            caveat = "新生参与参考，内容包括实践方向、兴趣匹配与入门建议。报名请使用学校或学院发布的招新公告。"
         if filename in HISTORICAL:
-            caveat = "包含2024级报到参考，不代表2026级或以后安排；时间、接站、缴费方式须核对当年通知。"
+            caveat = ARRIVAL_REFERENCE_ADVICE
         for part in parts:
             part = part.strip()
             if not part:

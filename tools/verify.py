@@ -129,7 +129,7 @@ class EvidenceTests(unittest.TestCase):
                 with self.subTest(question=question):
                     prepared = answerer.prepare(question, [])
                     answer, mode = answerer.generate(question, prepared)
-                    self.assertIn("未确认当年", answer)
+                    self.assertIn("建议查看你这一届", answer)
                     self.assertEqual(mode, "local_evidence")
                     self.assertFalse(prepared["remote_attempted"])
             remote.assert_not_called()
@@ -156,18 +156,18 @@ class EvidenceTests(unittest.TestCase):
         answerer = Answerer(self.retriever, Settings())
         prepared = answerer.prepare("今年新生什么时候报到", [])
         answer, mode = answerer.generate("今年新生什么时候报到", prepared)
-        self.assertIn("未确认当年", answer)
+        self.assertIn("建议查看你这一届", answer)
         self.assertEqual(mode, "local_evidence")
 
     def test_missing_opening_time_is_not_inferred_from_map(self):
         answerer = Answerer(self.retriever, Settings())
         prepared = answerer.prepare("图书馆开放时间是几点", [])
-        self.assertIn("未确认该设施", prepared["warnings"][0])
+        self.assertIn("查看当天的开放公告", prepared["warnings"][0])
 
     def test_missing_amount_is_not_inferred(self):
         answerer = Answerer(self.retriever, Settings())
         prepared = answerer.prepare("学费多少钱", [])
-        self.assertIn("未确认当年具体收费金额", prepared["warnings"][0])
+        self.assertIn("核对项目、金额和官方缴费入口", prepared["warnings"][0])
 
     def test_default_mode_never_calls_remote_even_with_inherited_env(self):
         with patch.dict("os.environ", {"DEEPSEEK_API_KEY": "synthetic-unused-key", "GUIDE_LLM_API_KEY": "synthetic-unused-key", "GUIDE_ALLOW_REMOTE_LLM": "false"}), patch("urllib.request.urlopen") as remote:
@@ -464,7 +464,8 @@ class DecisionTests(unittest.TestCase):
         with patch("urllib.request.urlopen") as remote:
             prepared = answerer.prepare("计算机协会本校怎么报名", [])
             answerer.generate("计算机协会本校怎么报名", prepared)
-            self.assertTrue(any("未确认本校" in w for w in prepared["warnings"]))
+            self.assertTrue(any("报名请使用" in w for w in prepared["warnings"]))
+            self.assertTrue(all("未确认" not in w and "未确定" not in w for w in prepared["warnings"]))
             remote.assert_not_called()
 
     def test_competition_intent_prefers_competition_and_room_excludes_other_room(self):
@@ -618,8 +619,8 @@ class PlannerTests(unittest.TestCase):
         self.assertTrue(retriever.search("几号接站？"))
         self.assertEqual(retriever.search("布拉格广场在哪里"), [])
         answerer = Answerer(retriever, Settings())
-        prepared = {"query": "图书馆几点开放", "sources": [], "warnings": ["未确认该设施开放时间"], "remote_attempted": False}
-        self.assertIn("未确认该设施", answerer.generate("图书馆几点开放", prepared)[0])
+        prepared = {"query": "图书馆几点开放", "sources": [], "warnings": ["建议出发前查看当天的开放公告"], "remote_attempted": False}
+        self.assertIn("查看当天的开放公告", answerer.generate("图书馆几点开放", prepared)[0])
 
 
 class PlannerHTTPTests(HTTPFixture, unittest.TestCase):

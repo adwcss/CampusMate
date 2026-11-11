@@ -1,6 +1,6 @@
 "use strict";
 const $ = (selector) => document.querySelector(selector);
-const LABELS = {official_verified: "已核实官方文件", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考", web_snippet: "官方域名搜索摘要 · 正文待核验"};
+const LABELS = {official_verified: "已核实官方文件", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考", web_snippet: "官方域名搜索摘要 · 正文待核验", official_notice_link: "学校官网公告入口"};
 const state = {catalog: null, sources: [], checked: {}, messages: [], busy: false, faq: 0, zoom: 1, mapCategory: "", mapQuery: "", session: "", view: "chat", explore: null, saved: [], profile: null, recommendations: null, recommendKind: "bed", compare: [], dorm: null, dormRoom: null, idealBeds: [], contest: null, contestCat: "", contestLevel: "", contestKw: "", club: null, clubCat: "", clubKw: "", union: null, unionCat: "", unionKw: ""};
 try {
   state.session = localStorage.getItem("freshman-session-v1") || crypto.randomUUID().replaceAll("-", "");
@@ -39,7 +39,8 @@ function mutate(path, payload, method = "POST") {
 }
 function changeView(view, push = true) {
   if (state.school && !state.school.legacy_content && !["chat", "tasks", "map", "sources", "checklist"].includes(view)) view = "chat";
-  state.view = ["arrival", "preparation", "chat", "map", "plan", "tasks", "dorm", "dorm-bed", "contest", "club", "union", "checklist", "sources"].includes(view) ? view : "arrival";
+  state.view = ["journey", "arrival", "preparation", "chat", "map", "plan", "tasks", "dorm", "dorm-bed", "contest", "club", "union", "checklist", "sources"].includes(view) ? view : "journey";
+  document.body.classList.toggle("journey-active", state.view === "journey");
   document.querySelectorAll(".view").forEach(node => { node.hidden = node.id !== `view-${state.view}`; });
   Appearance.showView(state.view);
   document.querySelectorAll("nav a").forEach(node => {
@@ -53,11 +54,14 @@ function changeView(view, push = true) {
   }
   document.title = `${{arrival: "新生情景演练", chat: "新生问答", map: "校园探索行程", plan: "我的成长计划", tasks: "日程与任务", dorm: "宿舍选择", "dorm-bed": "床位选择", contest: "竞赛指南", club: "社团指南", union: "学生会", checklist: "报到清单", sources: "资料来源"}[state.view]} · 初到新生指南`;
   document.title = document.title.replace("初到新生指南", `CampusMate · ${state.school?.short_name || "校园"}`);
+  if(state.view === "journey")document.title="校园探索长卷 · 初到河职大";
   if (state.view === "arrival" && orientationReady) selectRehearsal(push ? rehearsalCase : new URLSearchParams(location.search).get("case"), false);
   if (state.view === "preparation") document.title = "出发准备台 · 初到新生指南";
   if (state.view === "map" && orientationReady) { if (!push) routeOnly = new URLSearchParams(location.search).get("route") === "1"; renderItinerary(); renderPlaces(); }
   if (state.view === "tasks" && plannerReady) { if (!push) readTaskFilters(); renderPlanner(); }
+  if (state.view === "checklist" && plannerReady) renderPersonalArrival();
   if (state.view === "preparation" && preparationReady) loadPreparation(false).catch(error => { $("#prep-status").textContent = error.message; });
+  window.CampusMotion?.enter(state.view,push);
 }
 document.addEventListener("click", event => {
   const link = event.target.closest("a[href^='/?view=']");
@@ -85,6 +89,10 @@ function renderFaq() {
     $("#faq-tabs").append(tab);
   });
   $("#faq-questions").replaceChildren(...state.catalog.faqs[state.faq].questions.map(question => button(question, () => ask(question), "")));
+  if (state.school?.legacy_content && state.faq === 0) {
+    $("#faq-questions").prepend(button("体验：外地新生如何准备报到？", () =>
+      ask("我是今年的新生，从外地来报到。需要带哪些材料？接站安排在哪里查？现在可以先准备什么？"), ""));
+  }
 }
 function safeLink(raw) {
   try {
@@ -112,6 +120,43 @@ function citations(sources) {
   });
   return group;
 }
+function answerArrivalForm(message) {
+  const form = element("form", "answer-arrival");
+  const choices = element("fieldset");
+  choices.append(element("legend", "", "把回答变成出发前的准备事项"));
+  const status = element("p", "form-status");
+  status.setAttribute("role", "status");
+  for (const task of message.arrival_actions) {
+    const label = element("label");
+    const input = element("input");
+    input.type = "checkbox";
+    input.name = "arrival_action";
+    input.value = task.arrival_template;
+    input.checked = true;
+    label.append(input, document.createTextNode(task.title));
+    choices.append(label);
+  }
+  const submit = element("button", "primary", "加入我的报到清单");
+  submit.type = "submit";
+  const open = button("查看报到清单", () => changeView("checklist"));
+  form.append(choices, submit, open, status);
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    const selected = new FormData(form).getAll("arrival_action");
+    if (!selected.length) { status.textContent = "请至少选择一项准备事项。"; return; }
+    submit.disabled = choices.disabled = true;
+    try {
+      const result = await mutate("/api/arrival/from-answer", {answer_id: message.id, selected});
+      personalTasks = result.tasks;
+      state.arrivalTaskIds = result.arrival_task_ids;
+      renderPersonalArrival();
+      if (state.view === "tasks") renderPlanner();
+      status.textContent = `新增 ${result.added} 项，已在清单中 ${result.skipped} 项。原有进度已保留。`;
+    } catch (error) { status.textContent = error.message; }
+    finally { submit.disabled = choices.disabled = false; }
+  });
+  return form;
+}
 function messageNode(message) {
   const wrapper = element("article", `message ${message.role}`);
   wrapper.append(element("span", "avatar", message.role === "user" ? "你" : "初"));
@@ -126,13 +171,14 @@ function messageNode(message) {
     message.conflicts.forEach(conflict => box.append(element("p", "", conflict.message)));
     content.append(box);
   }
-  if (message.retrieval_mode === "enhanced") content.append(element("p", "badge", message.web_used ? "本地与联网并行检索 · 联网摘要正文待核验" : "已请求联网增强 · 本次使用本地资料"));
+  if (message.retrieval_mode === "enhanced") content.append(element("p", "badge", message.web_used ? "本地与联网并行检索 · 可打开官方原文" : "已请求联网增强 · 本次使用本地资料"));
   if (message.sources?.length) content.append(citations(message.sources));
   if (message.check_links?.length) {
     const checks = element("details", "verification-links"); checks.append(element("summary", "", "核对最新公开通知"), element("p", "", "点击后打开外部网站。搜索只使用固定主题词，不发送完整问题；网页内容和当前安排需自行核对。"));
     message.check_links.forEach(item => { const link = safeLink(item.url); if (link) { link.textContent = item.label; checks.append(link); } }); content.append(checks);
   }
   if (message.role === "assistant" && message.id) {
+    if (message.arrival_actions?.length) content.append(answerArrivalForm(message));
     const actions = element("div", "message-actions");
     actions.append(button("复制回答", async () => {
       try { await navigator.clipboard.writeText(message.content); toast("回答已复制"); }
@@ -172,15 +218,17 @@ async function ask(question) {
   $("#send").textContent = "查找资料…";
   $("#clear-chat").disabled = true;
   $("#question").value = "";
-  $("#request-status").textContent = "正在查找相关资料…";
+  const retrievalMode = $("#retrieval-mode").value;
+  const lookupMessage = retrievalMode === "enhanced" ? "正在查阅本地资料和联网来源…" : "正在查找本地资料…";
+  $("#request-status").textContent = lookupMessage;
   $("#chat-welcome").hidden = true;
   $("#conversation").append(messageNode({role: "user", content: question}).wrapper);
-  const current = messageNode({role: "assistant", content: "正在查找相关资料…"});
+  const current = messageNode({role: "assistant", content: lookupMessage});
   $("#conversation").append(current.wrapper);
   let text = "", pending = "", completed = false;
   let metadata = {};
   try {
-    const response = await schoolFetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({session: state.session, question, retrieval_mode: $("#retrieval-mode").value})});
+    const response = await schoolFetch("/api/ask", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({session: state.session, question, retrieval_mode: retrievalMode})});
     if (!response.ok) { const error = await response.json(); throw new Error(error.error || "提问失败，请重试。"); }
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
@@ -189,7 +237,7 @@ async function ask(question) {
       const raw = frame.split("\n").filter(line => line.startsWith("data: ")).map(line => line.slice(6)).join("\n");
       if (!raw) return;
       const data = JSON.parse(raw);
-      if (type === "status") $("#request-status").textContent = data.source_count ? `找到 ${data.source_count} 条资料，正在整理回答…` : "资料不足，正在提供查询指引…";
+      if (type === "status") $("#request-status").textContent = data.source_count ? `找到 ${data.source_count} 条资料，正在整理回答…` : "正在整理下一步查询建议…";
       if (type === "sources") metadata = data;
       if (type === "delta") { text += data.text; current.body.textContent = text; }
       if (type === "done") completed = true;
@@ -204,7 +252,12 @@ async function ask(question) {
     if (!completed) throw new Error("回答连接中断，请刷新查看已保存的回答，或重试。");
     state.messages = (await api(`/api/history?session=${state.session}`)).messages;
     renderMessages();
-    $("#request-status").textContent = metadata.mode === "remote_llm" ? "AI 回答已完成，可查看来源" : metadata.remote_attempted ? "已尝试外部模型，当前回答已回退到本地资料" : "本地资料回答已完成，未调用外部模型";
+    const status = $("#request-status");
+    if (metadata.web_used) status.textContent = "已整理本地与联网来源，可展开引用";
+    else if (retrievalMode === "enhanced") status.textContent = "本次使用本地资料，可查看回答中的查询建议";
+    else if (metadata.mode === "remote_llm") status.textContent = "AI 回答已完成，可查看来源";
+    else if (metadata.remote_attempted) status.textContent = "已切换为本地资料回答";
+    else status.textContent = metadata.sources?.length ? "已整理本地资料，可展开引用" : "已提供下一步查询建议";
 
   } catch (error) {
     current.body.textContent = text ? `${text}\n\n${error.message}` : error.message;
@@ -222,6 +275,19 @@ $("#question").addEventListener("keydown", event => {
   if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); $("#question-form").requestSubmit(); }
 });
 
+function renderPersonalArrival() {
+  const section = $("#personal-arrival-list");
+  const tasks = personalTasks.filter(task => state.arrivalTaskIds?.includes(task.id) && task.status !== "archived");
+  section.hidden = !tasks.length;
+  const list = element("ul");
+  for (const task of tasks) {
+    const status = {todo: "待办", doing: "进行中", done: "已完成"}[task.status];
+    const item = element("li");
+    item.append(element("span", "badge", status), document.createTextNode(` ${task.title}`));
+    list.append(item);
+  }
+  section.replaceChildren(element("h2", "", "我的出发准备事项"), list, button("在日程与任务中管理进度", () => changeView("tasks")));
+}
 function updateProgress() {
   const total = state.catalog.tasks.length;
   const completed = state.catalog.tasks.filter(task => state.checked[task.id]).length;
@@ -419,8 +485,9 @@ function renderContest() {
   const levels = $("#contest-levels");
   levels.replaceChildren();
   data.level_info.forEach(item => {
-    const card = element("div", `contest-level level-${item.level.toLowerCase()}`);
-    card.append(element("span", "level-badge", item.level), element("strong", "", item.name), element("p", "", item.desc));
+    const levelClass = `level-${item.level.toLowerCase()}`;
+    const card = element("div", `contest-level ${levelClass}`);
+    card.append(element("span", `level-badge ${levelClass}`, item.level), element("strong", "", item.name), element("p", "", item.desc));
     levels.append(card);
   });
   $("#contest-grad-note").textContent = data.grad_note;
@@ -488,9 +555,9 @@ function renderClubFilters() {
 function renderClubList() {
   if (!state.explore) return;
   const kw = state.clubKw.trim().toLowerCase();
-  const entries = state.explore.items.filter(item => item.kind === "club" && (!state.clubCat || item.category === state.clubCat) && (!kw || `${item.name} ${item.intro} ${item.audience} ${item.activities}`.toLowerCase().includes(kw)));
+  const entries = state.explore.items.filter(item => item.kind === "club" && (!state.clubCat || item.category === state.clubCat) && (!kw || [item.name, item.direction, item.intro, item.audience, item.activities, item.advice].join(" ").toLowerCase().includes(kw)));
   renderDecisionList($("#club-list"), entries);
-  $("#club-results").textContent = `共 ${entries.length} 个参考社团`;
+  $("#club-results").textContent = `共 ${entries.length} 个社团参与参考`;
 }
 // ---- 社团指南模块结束 ----
 // ---- 学生会与学生组织模块 ----
@@ -517,7 +584,7 @@ function renderUnionFilters() {
 function renderUnionList() {
   if (!state.explore) return;
   const kw = state.unionKw.trim().toLowerCase();
-  const entries = state.explore.items.filter(item => item.kind === "union" && (!state.unionCat || item.category === state.unionCat) && (!kw || `${item.name} ${item.intro} ${item.works} ${item.fit}`.toLowerCase().includes(kw)));
+  const entries = state.explore.items.filter(item => item.kind === "union" && (!state.unionCat || item.category === state.unionCat) && (!kw || [item.name, item.alias, item.direction, item.intro, item.works, item.fit, item.advice].join(" ").toLowerCase().includes(kw)));
   renderDecisionList($("#union-list"), entries);
   $("#union-results").textContent = `共 ${entries.length} 个参考部门或组织`;
 }
@@ -601,6 +668,7 @@ async function boot() {
     state.catalog = catalog;
     state.messages = historyData.messages;
     state.checked = checklist.checked;
+    state.arrivalTaskIds = checklist.arrival_task_ids;
     state.sources = sources.documents;
     state.dorm = dorm;
     state.contest = contest;
@@ -610,6 +678,7 @@ async function boot() {
     if (state.profile) state.recommendations = await mutate("/api/recommend", {profile: state.profile});
     initializeDecision();
     await initializePlanner();
+    renderPersonalArrival();
     await initializeOrientation();
     await initializePreparation();
     const mapCategory = $("#map-category");
