@@ -8,9 +8,11 @@
   ],
   "notice_pages": [
     "https://zjc.haust.edu.cn/zwgk.htm",
-    "https://zjc.haust.edu.cn/zsxxwsy/zsgg.htm"
+    "https://zjc.haust.edu.cn/zsxxwsy/zsgg.htm",
+    "https://xsc.haust.edu.cn/list.jsp?urltype=tree.TreeTempUrl&wbtreeid=1114"
   ],
   "legacy_content": false,
-  "status": "已接入本校招生章程和官方公告；正式入学须知、地图和校内服务待补充",
-  "map_notice": "河科大暂无已核实地图与地点数据。"
+  "status": "已接入本校招生章程、2026级绿色通道及迎新报道。完整入学须知、分学院报到地点、具体接站和普通缴费流程待核实。",
+  "map_notice": "可打开河南科技大学官网校园地图查看原图。本站校内点位待核实。",
+  "official_map": "https://www.haust.edu.cn/xxgk/xydt.htm"
 }
