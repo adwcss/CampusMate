@@ -134,13 +134,18 @@ def handler_for(application):
 
         def check_host(self):
             port = self.server.server_port
-            return self.headers.get("Host", "") in {f"localhost:{port}", f"127.0.0.1:{port}"}
+            allowed = {f"localhost:{port}", f"127.0.0.1:{port}"}
+            if root_application.settings.public_host:
+                allowed.add(root_application.settings.public_host)
+            return self.headers.get("Host", "").lower() in allowed
 
         def body(self):
             if not self.check_host():
                 raise ValueError("请求来源不受支持。")
             origin = self.headers.get("Origin")
-            if origin and origin not in {f"http://127.0.0.1:{self.server.server_port}", f"http://localhost:{self.server.server_port}"}:
+            host = self.headers["Host"].lower()
+            scheme = "https" if host == root_application.settings.public_host else "http"
+            if origin and origin != f"{scheme}://{host}":
                 raise PermissionError("请求来源不受支持。")
             if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                 raise ValueError("需要JSON请求。")
@@ -438,8 +443,12 @@ def handler_for(application):
 
 
 def serve(port=8765):
+    class CampusMateServer(ThreadingHTTPServer):
+        # A fresh browser tab can request dozens of assets through the tunnel at once.
+        request_queue_size = 128
+
     app = Application()
-    server = ThreadingHTTPServer(("127.0.0.1", port), handler_for(app))
+    server = CampusMateServer(("127.0.0.1", port), handler_for(app))
     server.daemon_threads = True
     print(f"新生指南已启动：http://127.0.0.1:{port}/", flush=True)
     print("默认使用本地资料模式；外部模型请求：关闭" if not app.settings.remote_enabled() else "外部模型已显式启用，可能产生费用", flush=True)

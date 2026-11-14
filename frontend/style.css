@@ -75,3 +75,10 @@ select:focus-visible{outline:3px solid #5a8dc5;outline-offset:4px}
 
 .campus3d-entry{display:inline-flex;margin-bottom:18px;padding:12px 22px;border-radius:12px;background:#426aac;color:white;text-decoration:none}
 .answer-arrival{margin-top:16px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink)}.answer-arrival fieldset{min-width:0;margin:0 0 12px;padding:0;border:0}.answer-arrival legend{font-weight:700;margin-bottom:6px}.answer-arrival label{display:flex;align-items:center;gap:8px;padding:5px 0}.answer-arrival button{margin:0 8px 6px 0}.answer-arrival .form-status:empty{display:none}#personal-arrival-list{margin-block:16px}#personal-arrival-list ul{padding-inline-start:22px}#personal-arrival-list li{margin-block:8px}
+.arrival-status-filters,.arrival-task-actions{display:flex;flex-wrap:wrap;gap:8px}
+.arrival-status-filters button[aria-pressed="true"],.arrival-task-steps [aria-current="step"]{background:var(--soft);color:var(--forest);border-color:var(--forest);font-weight:700}
+#personal-arrival-list > ul{padding:0;list-style:none}
+#personal-arrival-list > ul > li{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+#personal-arrival-list .arrival-task-steps{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:0 0 8px}
+#personal-arrival-list .arrival-task-steps li{padding:4px 9px;border:1px solid var(--line);border-radius:20px;color:var(--muted)}
+#personal-arrival-list .arrival-task-steps [aria-current="step"]{color:var(--forest);border-color:var(--forest)}

@@ -284,39 +284,70 @@ $("#question").addEventListener("keydown", event => {
   if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); $("#question-form").requestSubmit(); }
 });
 
+let arrivalStatusFilter = "all";
+const arrivalStatuses = {todo: "待办", doing: "进行中", done: "已完成"};
+
 function renderPersonalArrival() {
   const section = $("#personal-arrival-list");
   const tasks = personalTasks.filter(task => state.arrivalTaskIds?.includes(task.id) && task.status !== "archived");
   section.hidden = !tasks.length;
+  const totals = {all: tasks.length, todo: 0, doing: 0, done: 0};
+  for (const task of tasks) totals[task.status]++;
+  const filters = element("div", "arrival-status-filters");
+  filters.setAttribute("role", "group");
+  filters.setAttribute("aria-label", "按准备进度筛选");
+  for (const [status, label] of Object.entries({all: "全部", ...arrivalStatuses})) {
+    const filter = button(`${label} ${totals[status]}`, () => {
+      arrivalStatusFilter = status;
+      renderPersonalArrival();
+      section.querySelector('[aria-pressed="true"]')?.focus();
+    });
+    filter.setAttribute("aria-pressed", String(arrivalStatusFilter === status));
+    filters.append(filter);
+  }
   const list = element("ul");
-  for (const task of tasks) {
-    const status = {todo: "待办", doing: "进行中", done: "已完成"}[task.status];
+  for (const task of tasks.filter(task => arrivalStatusFilter === "all" || task.status === arrivalStatusFilter)) {
     const item = element("li");
     const completed = task.status === "done";
-    const toggle = button(completed ? "标为待办" : "标为完成", async () => {
+    const update = async status => {
       const controls = section.querySelectorAll("button");
       controls.forEach(control => { control.disabled = true; });
       try {
-        const result = await mutate("/api/tasks", {task: {...task, status: completed ? "todo" : "done"}});
+        const result = await mutate("/api/tasks", {task: {...task, status}});
         personalTasks = result.tasks;
         renderPersonalArrival();
-        section.querySelector(`[data-arrival-task="${task.id}"]`)?.focus();
-        toast(completed ? "已标为待办" : "已标为完成");
+        (section.querySelector(`[data-arrival-task="${task.id}"]`) || section.querySelector('[aria-pressed="true"]'))?.focus();
+        toast(`已更新为${arrivalStatuses[status]}`);
       } catch (error) {
         toast(error.message);
       } finally {
         controls.forEach(control => { control.disabled = false; });
       }
-    }, "secondary arrival-task-toggle");
+    };
+    const toggle = button(completed ? "标为待办" : "标为完成", () => update(completed ? "todo" : "done"), "secondary arrival-task-toggle");
     toggle.dataset.arrivalTask = task.id;
     toggle.setAttribute("aria-label", `${toggle.textContent}：${task.title}`);
-    item.append(element("span", "badge", status), document.createTextNode(` ${task.title} `), toggle);
+    const steps = element("ol", "arrival-task-steps");
+    steps.setAttribute("aria-label", "事项进度");
+    for (const [status, label] of Object.entries(arrivalStatuses)) {
+      const step = element("li", "", label);
+      if (status === task.status) step.setAttribute("aria-current", "step");
+      steps.append(step);
+    }
+    const actions = element("div", "arrival-task-actions");
+    if (task.status === "todo") {
+      const start = button("开始准备", () => update("doing"));
+      start.setAttribute("aria-label", `开始准备：${task.title}`);
+      actions.append(start);
+    }
+    actions.append(toggle);
+    item.append(element("strong", "", task.title), steps, actions);
     list.append(item);
   }
-  const completed = tasks.filter(task => task.status === "done").length;
-  const progress = element("p", "", `个人准备已完成 ${completed} / ${tasks.length} 项`);
+  const progress = element("p", "", `个人准备已完成 ${totals.done} / ${tasks.length} 项`);
   progress.setAttribute("role", "status");
-  section.replaceChildren(element("h2", "", "我的出发准备事项"), progress, list,
+  section.replaceChildren(element("h2", "", "我的出发准备事项"), progress, filters,
+    list.childElementCount ? list : element("p", "", "当前筛选下没有准备事项。"),
     button("在日程与任务中管理进度", () => changeView("tasks")));
 }
 function updateProgress() {
