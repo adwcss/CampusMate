@@ -13,6 +13,32 @@
       "status": "verified_summary",
       "document_kind": "admissions_charter",
       "caveat": "依据河南科技大学招生就业办公室网站正文整理。章程适用于 2026 年普通本科招生；报到地点和日期以本人收到的入学须知为准。"
+    },
+    {
+      "title": "关于开通2026级新生入学“绿色通道”的通知",
+      "url": "https://xsc.haust.edu.cn/info/1114/25647.htm",
+      "published_at": "2026-08-30",
+      "verified_at": "2026-11-14",
+      "downloaded_at": null,
+      "file": "green-channel-2026.txt",
+      "sha256": "3759c3e8457fae2e12968b34fe1eb11370c9b5b38aa865ffc6302c9c8e52ae9e",
+      "effective_year": 2026,
+      "status": "verified_summary",
+      "document_kind": "aid_notice",
+      "caveat": "学生资助通知，适用资格、申请流程以原文为准。"
+    },
+    {
+      "title": "河南科技大学我校喜迎2026级新生",
+      "url": "https://www.haust.edu.cn/dyfxgndetail.jsp?urltype=news.NewsContentUrl&wbnewsid=344251&wbtreeid=1063",
+      "published_at": "2026-09-11",
+      "verified_at": "2026-11-14",
+      "downloaded_at": null,
+      "file": "welcome-2026.txt",
+      "sha256": "8fe847c67339418ffb62149a5aed41fb7d84e618195b4aecef9e9c63e76f6968",
+      "effective_year": 2026,
+      "status": "verified_summary",
+      "document_kind": "welcome_report",
+      "caveat": "官方迎新报道，记录已经开展的活动。"
     }
   ]
 }

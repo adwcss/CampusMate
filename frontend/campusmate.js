@@ -27,6 +27,13 @@ async function initializeSchool() {
   document.querySelector(".intro-school").textContent = school.name;
   document.querySelector("#school-status").textContent = school.status;
   document.querySelector("#map-notice").textContent = school.map_notice;
+  if (school.official_map) {
+    const link = element("a", "secondary", "查看学校官网校园地图");
+    link.href = school.official_map;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.querySelector("#map-notice").append(document.createTextNode(" "), link);
+  }
   const home = document.querySelector("#school-home");
   home.hidden = !school.official_home;
   if (school.official_home) home.href = school.official_home;

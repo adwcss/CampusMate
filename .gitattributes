@@ -6,3 +6,4 @@
 *.cmd text eol=crlf
 *.png binary
 *.pdf binary
+knowledge/**/*.txt text eol=lf

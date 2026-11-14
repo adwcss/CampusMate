@@ -9,6 +9,10 @@ from .retriever.splitter import PARTICIPATION_GUIDES
 from .websearch import verification_links
 from .arrival_answer import arrival_answer
 
+ARRIVAL_QUESTION = r"报到|接站|迎新|入学须知|入学时间|军训"
+ARRIVAL_SOURCE = r"报到|接站|迎新|入学须知|军训|喜迎.*新生"
+NON_ARRIVAL_DOCUMENTS = {"admissions_charter", "fee_schedule", "information_disclosure"}
+
 
 def excerpt(chunk, query):
     lines = [line.lstrip("# ") for line in chunk["text"].splitlines() if line.strip() and not line.startswith(">") and not line.startswith("#")]
@@ -48,9 +52,12 @@ class Answerer:
 
     def prepare(self, question, history, retrieval_mode="local"):
         query = rewrite(question, history)
+        target_year = re.search(r"(?<!\d)(20\d{2})(?!\d)\s*(?:年|级)", query)
+        dated_arrival = bool(target_year and re.search(ARRIVAL_QUESTION, query))
         web, search_status = [], "not_requested"
         def local():
-            guided = arrival_answer(query, self.retriever, self.school)
+            # Keep the historical guided checklist for undated questions.
+            guided = None if dated_arrival else arrival_answer(query, self.retriever, self.school)
             return (guided[1] if guided else self.retriever.search(query)), guided
 
         enhanced = retrieval_mode == "enhanced"
@@ -64,7 +71,6 @@ class Answerer:
             sources, guided = local()
         conflicts = possible_conflicts(sources, [source for source in web if source["verified"]])
         sources = sources + web
-        target_year = re.search(r"(?<!\d)(20\d{2})(?!\d)\s*(?:年|级)", query)
         warnings = list(dict.fromkeys(
             c["caveat"] for c in sources if not c["verified"] and
             (not target_year or c.get("effective_year") in (None, int(target_year[1])))
@@ -121,10 +127,15 @@ class Answerer:
             if extra:
                 answer += "\n\n" + local_answer(query, [source for _, source in extra], [], [i for i, _ in extra])
         else:
-            if target_year and re.search(r"报到|接站|军训", query) and prepared["needs_official_details"]:
+            if target_year and re.search(ARRIVAL_QUESTION, query):
                 usable = [(i, source) for i, source in usable if source["verified"]
                           and source.get("effective_year") == target_year
-                          and re.search(r"报到|迎新|入学须知|接站|军训", source["source"])]
+                          and source.get("document_kind") not in NON_ARRIVAL_DOCUMENTS
+                          and not re.search(r"招生章程|信息公开工作报告", source["source"])
+                          and (re.search(ARRIVAL_SOURCE, source["source"]) or
+                               (re.search(r"绿色通道|缓缴|资助", query) and "绿色通道" in source["source"]))]
+                if not usable:
+                    warnings = [f"{target_year} 级所问安排待核实。请核对本人入学须知或学校迎新通知。", *warnings]
             answer = local_answer(query, [source for _, source in usable], warnings, [i for i, _ in usable])
         mode = "local_evidence"
         sensitive = prepared.get("needs_official_details", False) or any(
