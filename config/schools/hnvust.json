@@ -7,7 +7,7 @@
     "hnvust.cn"
   ],
   "legacy_content": true,
-  "status": "示范配置；交接资料待核对，2026级报到须知待补充",
+  "status": "已接入2026年新生收费公示和2025级迎新报道。2026级正式入学须知、报到日期、办理地点、接站和缴费流程待核实。",
   "map_notice": "基于你上传的校园示意图美化，主要地点已按图校对；小字请对照原图。非官方认证地图、非实测比例，不用于道路导航。",
   "map_image": "/assets/maps/hnvust-map-beautified.svg",
   "map_original": "/assets/maps/hnvust-map-original.png",
@@ -18,6 +18,7 @@
   "notice_pages": [
     "https://www.hnvust.cn/xwdt/tzgg.htm",
     "https://zhaoshengchu.hnvust.cn/tzgg.htm",
-    "https://zhaoshengchu.hnvust.cn/zszc.htm"
+    "https://zhaoshengchu.hnvust.cn/zszc.htm",
+    "https://caiwuchu.hnvust.cn/bmdt/tzgg.htm"
   ]
 }

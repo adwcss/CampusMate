@@ -71,8 +71,8 @@ class Retriever:
             focus = ["报到时间"]
         elif re.search(r"床位|选寝|睡眠|中间位", query):
             focus = ["床位", "六人寝" if "六人" in query else "四人寝" if "四人" in query else "床位"]
-        elif "学费" in query or "缴费" in query:
-            focus = ["缴费", "学费"]
+        elif re.search(r"学费|缴费|收费", query):
+            focus = ["缴费", "学费", "收费标准"]
         elif "军训" in query:
             focus = ["军训动员", "时间"] if re.search(r"什么时候|时间|开始|几号", query) else ["军训"]
         elif "专业" in query or "院系" in query:

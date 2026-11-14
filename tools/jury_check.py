@@ -50,8 +50,8 @@ def verify():
                 assert len(guided["arrival_actions"]) == 3 and "19点" not in guided["content"]
                 request("/api/ask", {"session": session, "question": "报到点在哪里？"})
                 location = json.loads(request(f"/api/history?session={session}"))["messages"][-1]
-                assert "本学院的报到点" in location["content"] and "2024 级参考" in location["content"]
-                assert "不代表2026级或以后安排" not in location["content"]
+                assert "本学院的报到点" in location["content"] and "适用年份：2024" in location["content"]
+                assert any(source["effective_year"] == 2024 for source in location["sources"])
                 selection = {"session": session, "answer_id": guided["id"], "selected": ["identity", "travel"]}
                 saved = json.loads(request("/api/arrival/from-answer", selection))
                 assert saved["added"] == 2 and len(saved["arrival_task_ids"]) == 2
