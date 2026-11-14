@@ -1,11 +1,11 @@
 "use strict";
 const $ = (selector) => document.querySelector(selector);
-const LABELS = {official_verified: "已核实官方文件", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考", web_snippet: "官方域名搜索摘要 · 正文待核验", official_notice_link: "学校官网公告入口"};
+const LABELS = {official_verified: "已核实官方文件", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考", web_snippet: "官方域名搜索摘要 · 正文待核验", official_notice_link: "学校官网公告入口", official_article: "学校官网正文已读取"};
 const state = {catalog: null, sources: [], checked: {}, messages: [], busy: false, faq: 0, zoom: 1, mapCategory: "", mapQuery: "", session: "", view: "chat", explore: null, saved: [], profile: null, recommendations: null, recommendKind: "bed", compare: [], dorm: null, dormRoom: null, idealBeds: [], contest: null, contestCat: "", contestLevel: "", contestKw: "", club: null, clubCat: "", clubKw: "", union: null, unionCat: "", unionKw: ""};
+const sessionKey = selectedSchoolId === "hnvust" ? "freshman-session-v1" : `campusmate-session-v1:${selectedSchoolId}`;
 try {
-  state.session = localStorage.getItem("freshman-session-v1") || crypto.randomUUID().replaceAll("-", "");
-  localStorage.setItem("freshman-session-v1", state.session);
-
+  state.session = localStorage.getItem(sessionKey) || crypto.randomUUID().replaceAll("-", "");
+  localStorage.setItem(sessionKey, state.session);
 } catch {
   state.session = crypto.randomUUID().replaceAll("-", "");
 }
@@ -110,9 +110,10 @@ function citations(sources) {
   sources.forEach((source, index) => {
     const details = element("details", "citation");
     const summary = element("summary", "", `【${index + 1}】${source.source} · ${source.section}`);
-    details.append(summary, element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, LABELS[source.source_type]));
+    details.append(summary, element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, (source.trust_label || LABELS[source.source_type])));
     details.append(element("p", "", source.caveat));
-    if (source.published_at || source.evidence_origin === "search_api") details.append(element("p", "", `发布日期：${source.published_at || "来源未提供，待核实"}；检索时间：${source.retrieved_at || source.collected_at}`));
+    if (source.published_at || source.retrieved_at) details.append(element("p", "", `发布日期：${source.published_at || "待核实"}`));
+    if (source.retrieved_at) details.append(element("p", "", `检索时间：${source.retrieved_at}`));
     if (source.effective_year) details.append(element("p", "", `适用参考年份：${source.effective_year}；采集日期：${source.collected_at}`));
     details.append(element("pre", "", source.text));
     for (const raw of source.urls || []) { const link = safeLink(raw); if (link) details.append(link); }
@@ -612,8 +613,10 @@ function renderSources(filter = "") {
   for (const source of documents) {
     const doc = element("details", "source-document");
     const summary = element("summary", "", source.name);
-    summary.append(element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, LABELS[source.source_type]));
+    summary.append(element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, (source.trust_label || LABELS[source.source_type])));
     doc.append(summary, element("p", "", source.caveat));
+    if (source.published_at) doc.append(element("p", "", `发布日期：${source.published_at}`));
+    if (source.effective_year) doc.append(element("p", "", `适用年份：${source.effective_year} · 采集：${source.collected_at}`));
     for (const raw of source.urls) { const link = safeLink(raw); if (link) doc.append(link); }
     for (const chunk of source.chunks) {
       const section = element("div", "source-chunk");
@@ -688,6 +691,7 @@ async function boot() {
     $("#knowledge-meta").textContent = `${stats.remote_enabled ? "AI 资料" : "本地资料"} · ${stats.document_count} 份 · ${stats.chunk_count} 条`;
     $("#mode-label").textContent = stats.remote_enabled ? "AI 资料模式" : "本地资料模式";
     $("#mode-detail").textContent = stats.remote_enabled ? "已显式启用外部模型，可能产生费用。" : "无需 API 额度，所有资料在本机检索。";
+    renderSearchMode(stats);
     renderFaq(); renderMessages(); renderTasks(); renderPlaces(); renderDormEnv(); renderContest(); renderClub(); renderUnion(); renderSources(); setZoom(1);
     if (state.view === "dorm-bed") {
       const roomType = ["siren", "liuren"].includes(params.get("room")) ? params.get("room") : "siren";

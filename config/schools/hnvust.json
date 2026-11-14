@@ -14,5 +14,10 @@
   "map_width": 1254,
   "map_height": 1254,
   "map_original_width": 813,
-  "map_original_height": 792
+  "map_original_height": 792,
+  "notice_pages": [
+    "https://www.hnvust.cn/xwdt/tzgg.htm",
+    "https://zhaoshengchu.hnvust.cn/tzgg.htm",
+    "https://zhaoshengchu.hnvust.cn/zszc.htm"
+  ]
 }

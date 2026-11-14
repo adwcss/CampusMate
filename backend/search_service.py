@@ -19,7 +19,8 @@ TOPICS = [(r"军训", "新生 军训 通知"), (r"费用|多少钱|学费|住宿
 def search_query(query, school):
     # Send a fixed public topic only: no session, full question or personal history.
     topic = next((topic for pattern, topic in TOPICS if re.search(pattern, query)), "新生 报到 入学须知")
-    return "site:" + school["official_domains"][0] + " " + school["name"] + " " + topic
+    year = re.search(r"(?<!\d)(20\d{2})\s*(?:年|级)", query)
+    return " ".join(filter(None, ("site:" + school["official_domains"][0], school["name"], topic, year[1] if year else "")))
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -44,8 +45,7 @@ class SearchService:
         if not self.enabled():
             return [], "not_configured"
         if self.settings.search_provider == "official":
-            with self.lock:
-                return self.notices.search(query)
+            return self.notices.search(query)
         public_query = search_query(query, self.school)
         url = "https://api.search.brave.com/res/v1/web/search?" + urlencode({"q": public_query, "count": 5, "text_decorations": "false"})
         request = urllib.request.Request(url, headers={"Accept": "application/json", "X-Subscription-Token": self.settings.search_key})
@@ -71,17 +71,16 @@ class SearchService:
                 if not snippet.strip():
                     continue
                 now = datetime.now(timezone.utc).isoformat()
-                published = item.get("page_age")
                 sources.append({"id": hashlib.sha256(url.encode()).hexdigest()[:16], "school_id": self.school["school_id"],
                                 "source": clean(title)[:200], "section": "联网搜索摘要（未核验正文）", "text": snippet,
                                 "source_type": "web_snippet", "evidence_origin": "search_api", "verified": False,
                                 "official_domain": True, "trust_label": "官方域名搜索摘要，正文待核实", "urls": [url],
                                 "effective_year": None, "collected_at": now, "retrieved_at": now,
-                                "published_at": published if isinstance(published, str) else None,
+                                "published_at": None,
                                 "caveat": "来自Brave搜索服务的摘要；官方域名不等于已核验内容，发布日期缺失时不推测，不作为办理依据。"})
                 if len(sources) == 3:
                     break
-            return sources, "ok" if sources else "no_official_results"
+            return [self.notices.verify(source, query) for source in sources], "ok" if sources else "no_official_results"
         except Exception:
             # Never expose a provider error, request URL or authentication header.
             return [], "unavailable"
@@ -91,11 +90,21 @@ def possible_conflicts(local, web):
     result = []
     for left in local:
         for right in web:
-            for label, pattern in [("金额", r"\d+(?:\.\d+)?(?=\s*元)"), ("日期", r"20\d{2}[-年]\d{1,2}[-月]\d{1,2}日?")]:
-                a, b = set(re.findall(pattern, left["text"])), set(re.findall(pattern, right["text"]))
-                if a and b and a != b:
-                    result.append({"kind": label, "source_ids": [left["id"], right["id"]],
-                                   "message": "本地资料与搜索摘要出现不同" + label + "，可能属于不同年份或项目；请打开原文核对，系统不自动裁定。"})
-            if left.get("effective_year") and str(left["effective_year"]) not in right["text"] and re.search(r"20\d{2}", right["text"]):
-                result.append({"kind": "适用年份", "source_ids": [left["id"], right["id"]], "message": "本地历史资料与联网摘要可能适用不同年份，请核对当年官方通知。"})
+            ids = [left["id"], right["id"]]
+            years = (left.get("effective_year"), right.get("effective_year"))
+            if all(years) and years[0] != years[1]:
+                result.append({"kind": "适用年份", "source_ids": ids,
+                               "message": f"两份资料分别适用 {years[0]} 和 {years[1]} 年，请按目标年份核对。"})
+                continue
+            for label, pattern in (
+                ("金额", r"(\d+(?:\.\d+)?)\s*元"),
+                ("日期", r"(20\d{2})[-年](\d{1,2})[-月](\d{1,2})日?"),
+            ):
+                def values(source):
+                    return {tuple(map(int, match)) if isinstance(match, tuple) else float(match)
+                            for match in re.findall(pattern, source["text"])}
+                a, b = values(left), values(right)
+                if a and b and a.isdisjoint(b):
+                    result.append({"kind": label, "source_ids": ids,
+                                   "message": f"本地资料与联网来源列出的{label}不同，请核对年份、项目和原文。"})
     return result[:6]
