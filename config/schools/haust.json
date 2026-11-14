@@ -1,0 +1,16 @@
+{
+  "school_id": "haust",
+  "name": "河南科技大学",
+  "short_name": "河科大",
+  "official_home": "https://www.haust.edu.cn/",
+  "official_domains": [
+    "haust.edu.cn"
+  ],
+  "notice_pages": [
+    "https://zjc.haust.edu.cn/zwgk.htm",
+    "https://zjc.haust.edu.cn/zsxxwsy/zsgg.htm"
+  ],
+  "legacy_content": false,
+  "status": "已接入本校招生章程和官方公告；正式入学须知、地图和校内服务待补充",
+  "map_notice": "河科大暂无已核实地图与地点数据。"
+}

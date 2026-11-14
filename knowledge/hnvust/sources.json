@@ -5,13 +5,14 @@
       "title": "河南科技职业大学2026年招生章程",
       "url": "https://www.hnvust.cn/info/1036/3851.htm",
       "published_at": "2026-05-18",
-      "verified_at": "2026-11-01",
+      "verified_at": "2026-11-14",
       "downloaded_at": null,
-      "file": null,
-      "sha256": null,
+      "file": "admissions-2026.txt",
+      "sha256": "ea1edcc86168caa1ba75ac7d0d64d4aedfb8dcc67b0feeace00a9d7d7927bbeb",
       "effective_year": 2026,
-      "status": "verified_url_pending_download",
-      "caveat": "官网网页已核实；下载被当前环境网络权限及自动审批规则阻断。招生章程不是新生报到须知。"
+      "status": "verified_summary",
+      "document_kind": "admissions_charter",
+      "caveat": "依据学校官网正文整理。适用于 2026 年本、专科招生；报到安排以本届入学须知为准。"
     },
     {
       "title": "2026级新生入学须知（待补充，非实际文件标题）",
@@ -30,6 +31,19 @@
       "file": null,
       "sha256": null,
       "status": "pending_verification"
+    },
+    {
+      "title": "河南科技职业大学2026年度信息公开工作报告",
+      "url": "https://www.hnvust.cn/info/1036/4151.htm",
+      "published_at": "2026-11-01",
+      "verified_at": "2026-11-14",
+      "downloaded_at": null,
+      "file": "information-disclosure-2026.txt",
+      "sha256": "ea71d11454405dba94af9e8fa13a3448616695a35458a6a23272831358945df5",
+      "effective_year": 2026,
+      "status": "verified_summary",
+      "document_kind": "disclosure_report",
+      "caveat": "依据学校官网工作报告整理。此条说明信息公开渠道；个人缴费与入学安排以当届通知为准。"
     }
   ]
 }

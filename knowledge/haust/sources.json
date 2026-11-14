@@ -1,0 +1,18 @@
+{
+  "school_id": "haust",
+  "sources": [
+    {
+      "title": "河南科技大学2026年全日制普通本科招生章程",
+      "url": "https://zjc.haust.edu.cn/info/1133/35053.htm",
+      "published_at": "2026-06-05",
+      "verified_at": "2026-11-14",
+      "downloaded_at": null,
+      "file": "admissions-2026.txt",
+      "sha256": "9f273c1f9051d79bbad04dd1eb21ee8f2c407a2ff02d5a95ef7116b345fc0c45",
+      "effective_year": 2026,
+      "status": "verified_summary",
+      "document_kind": "admissions_charter",
+      "caveat": "依据河南科技大学招生就业办公室网站正文整理。章程适用于 2026 年普通本科招生；报到地点和日期以本人收到的入学须知为准。"
+    }
+  ]
+}

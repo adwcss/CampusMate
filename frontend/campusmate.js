@@ -43,6 +43,7 @@ async function initializeSchool() {
       link.hidden = !["chat", "tasks", "map", "sources", "checklist"].includes(link.dataset.view);
     });
     document.querySelector(".contact-note").hidden = true;
+    document.querySelector(".campus3d-entry").hidden = true;
     const intro = document.querySelector("#intro-dialog"); if (intro.open) intro.close();
   }
   initializeArrivalGenerator();
@@ -105,6 +106,13 @@ function initializeArrivalGenerator() {
   });
 }
 
+function renderSearchMode(stats) {
+  const hint = document.querySelector("#retrieval-hint");
+  hint.textContent = stats.search_enabled
+    ? `并行查找本地资料和${stats.search_provider === "brave" ? " Brave Search 收录的学校官网" : "本校官网公告"}；正文可核验时附原文。`
+    : "本校当前使用本地资料。联网不可用时会自动使用本地资料。";
+}
+
 async function bootTemplate() {
   const [stats, catalog, history, checklist, sources] = await Promise.all([
     api("/api/stats"), api("/api/catalog"), api(`/api/history?session=${state.session}`),
@@ -112,13 +120,14 @@ async function bootTemplate() {
   state.catalog = catalog; state.messages = history.messages; state.checked = checklist.checked;
   state.sources = sources.documents; state.explore = {items: []}; state.saved = [];
   await initializePlanner();
-  document.querySelector("#knowledge-meta").textContent = `${stats.document_count} 份资料 · 待接入`;
-  document.querySelector("#mode-label").textContent = "本地资料模式";
-  document.querySelector("#mode-detail").textContent = "本校知识文件待补充；不会引用其他学校资料。";
+  document.querySelector("#knowledge-meta").textContent = `${stats.document_count} 份本校资料`;
+  document.querySelector("#mode-label").textContent = stats.remote_enabled ? "AI 资料模式" : "本地资料模式";
+  document.querySelector("#mode-detail").textContent = "问答、任务和资料按当前学校保存。";
   const category = document.querySelector("#map-category");
   ["", ...new Set(catalog.places.map(place => place.category))].forEach(value => { const option = element("option", "", value || "所有区域"); option.value = value; category.append(option); });
   category.addEventListener("change", event => { state.mapCategory = event.target.value; renderPlaces(); });
   document.querySelector("#map-search").addEventListener("input", event => { state.mapQuery = event.target.value.trim(); renderPlaces(); });
+  renderSearchMode(stats);
   renderFaq(); renderMessages(); renderTasks(); renderPlaces(); renderSources();
   changeView(new URLSearchParams(location.search).get("view") || "chat", false);
 }

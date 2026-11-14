@@ -62,7 +62,7 @@ class Application:
             return self.contexts[school_id]
 
     def stats(self):
-        return {"school_id": self.school_id, "school": self.school, "search_enabled": self.answerer.search.enabled(), "version": __version__, "document_count": len({c["source"] for c in self.retriever.chunks}), "chunk_count": len(self.retriever.chunks),
+        return {"school_id": self.school_id, "school": self.school, "search_provider": self.settings.search_provider, "search_enabled": self.answerer.search.enabled(), "version": __version__, "document_count": len({c["source"] for c in self.retriever.chunks}), "chunk_count": len(self.retriever.chunks),
                 "updated_at": "2026-10-14", "answer_mode": "remote_llm" if self.settings.remote_enabled() else "local_evidence",
                 "remote_enabled": self.settings.remote_enabled(), "received_key_blocked": self.settings.key_blocked(), "remote_calls": self.answerer.remote_calls}
 
@@ -120,7 +120,7 @@ def handler_for(application):
             self.school_id = values[0] if values else DEFAULT_SCHOOL
             app = root_application.for_school(self.school_id)
             path = urlsplit(self.path).path
-            if not app.school.get("legacy_content") and (path.startswith(("/api/orientation", "/api/preparation", "/api/saved", "/api/profile", "/api/recommend")) or path in {"/api/dorm", "/api/contest", "/api/club", "/api/studentorg", "/api/explore", "/api/tasks/from-choice", "/school-map.jpg", "/campus-map.png"} or path.startswith(("/dorm-images/", "/club-images/", "/union-images/"))):
+            if not app.school.get("legacy_content") and (path.startswith(("/api/orientation", "/api/preparation", "/api/saved", "/api/profile", "/api/recommend")) or path in {"/api/dorm", "/api/contest", "/api/club", "/api/studentorg", "/api/explore", "/api/tasks/from-choice", "/school-map.jpg", "/campus-map.png"} or path.startswith(("/dorm-images/", "/club-images/", "/union-images/", "/campus3d/"))):
                 raise ValueError("此学校尚未接入该模块资料。")
             if payload is not None and path in {"/api/tasks/import", "/api/tasks/import-preview", "/api/preparation/preview"}:
                 self.check_backup(payload.get("backup"))
@@ -177,7 +177,7 @@ def handler_for(application):
                 if url.path == "/api/stats":
                     return self.json(application.stats())
                 if url.path == "/api/catalog":
-                    return self.json({"faqs": FAQS if application.school.get("legacy_content") else [{"category": "待补充资料", "questions": ["报到需要准备什么？"]}], "places": application.places, "route": ROUTE if application.school.get("legacy_content") else [], "tasks": TASKS if application.school.get("legacy_content") else []})
+                    return self.json({"faqs": FAQS if application.school.get("legacy_content") else [{"category": "本校信息", "questions": ["学校地址和校区在哪里？", "报到需要准备什么？"]}], "places": application.places, "route": ROUTE if application.school.get("legacy_content") else [], "tasks": TASKS if application.school.get("legacy_content") else []})
                 if url.path == "/api/places":
                     return self.json({"places": application.places})
                 if url.path == "/api/explore":
@@ -234,7 +234,7 @@ def handler_for(application):
                 if url.path == "/api/sources":
                     documents = {}
                     for c in application.retriever.chunks:
-                        documents.setdefault(c["source"], {"school_id": application.school_id, "name": c["source"], "source_type": c["source_type"], "urls": c["urls"], "effective_year": c["effective_year"], "caveat": c["caveat"], "verified": c["verified"], "published_at": c.get("published_at"), "collected_at": c["collected_at"], "chunks": []})["chunks"].append({"id": c["id"], "school_id": application.school_id, "section": c["section"], "text": c["text"]})
+                        documents.setdefault(c["source"], {"school_id": application.school_id, "name": c["source"], "source_type": c["source_type"], "urls": c["urls"], "effective_year": c["effective_year"], "caveat": c["caveat"], "verified": c["verified"], "published_at": c.get("published_at"), "collected_at": c["collected_at"], "trust_label": c.get("trust_label"), "document_kind": c.get("document_kind"), "chunks": []})["chunks"].append({"id": c["id"], "school_id": application.school_id, "section": c["section"], "text": c["text"]})
                     return self.json({"documents": list(documents.values())})
                 if url.path == "/favicon.ico":
                     self.respond_headers(204, "image/x-icon", 0)

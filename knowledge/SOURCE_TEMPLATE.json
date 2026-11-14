@@ -4,11 +4,13 @@
     "title": "填写官方文件实际标题",
     "url": null,
     "published_at": null,
+    "verified_at": null,
+    "document_kind": null,
     "downloaded_at": null,
     "file": null,
     "sha256": null,
     "effective_year": null,
     "status": "pending_verification",
-    "caveat": "未确认的发布日期保留null；只有已核实且实际下载的文件才标记verified_download。"
+    "caveat": "未确认的发布日期保留null；官方正文人工整理用 verified_summary；已核实的实际下载文件用 verified_download。"
   }]
 }
