@@ -9,7 +9,7 @@ from .retriever.splitter import PARTICIPATION_GUIDES
 from .websearch import verification_links
 from .arrival_answer import arrival_answer
 
-ARRIVAL_QUESTION = r"报到|接站|迎新|入学须知|入学时间|军训"
+ARRIVAL_QUESTION = r"报[到道]|接站|迎新|入学须知|入学时间|军训|开学|到校|接驳"
 ARRIVAL_SOURCE = r"报到|接站|迎新|入学须知|军训|喜迎.*新生"
 NON_ARRIVAL_DOCUMENTS = {"admissions_charter", "fee_schedule", "information_disclosure"}
 

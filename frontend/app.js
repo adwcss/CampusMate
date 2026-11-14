@@ -139,7 +139,15 @@ function answerArrivalForm(message) {
   }
   const submit = element("button", "primary", "加入我的报到清单");
   submit.type = "submit";
-  const open = button("查看报到清单", () => changeView("checklist"));
+  const open = button("查看报到清单", () => {
+    changeView("checklist");
+    const heading = $("#personal-arrival-list:not([hidden]) h2");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus();
+      heading.scrollIntoView({block: "center"});
+    }
+  });
   form.append(choices, submit, open, status);
   form.addEventListener("submit", async event => {
     event.preventDefault();
@@ -284,10 +292,32 @@ function renderPersonalArrival() {
   for (const task of tasks) {
     const status = {todo: "待办", doing: "进行中", done: "已完成"}[task.status];
     const item = element("li");
-    item.append(element("span", "badge", status), document.createTextNode(` ${task.title}`));
+    const completed = task.status === "done";
+    const toggle = button(completed ? "标为待办" : "标为完成", async () => {
+      const controls = section.querySelectorAll("button");
+      controls.forEach(control => { control.disabled = true; });
+      try {
+        const result = await mutate("/api/tasks", {task: {...task, status: completed ? "todo" : "done"}});
+        personalTasks = result.tasks;
+        renderPersonalArrival();
+        section.querySelector(`[data-arrival-task="${task.id}"]`)?.focus();
+        toast(completed ? "已标为待办" : "已标为完成");
+      } catch (error) {
+        toast(error.message);
+      } finally {
+        controls.forEach(control => { control.disabled = false; });
+      }
+    }, "secondary arrival-task-toggle");
+    toggle.dataset.arrivalTask = task.id;
+    toggle.setAttribute("aria-label", `${toggle.textContent}：${task.title}`);
+    item.append(element("span", "badge", status), document.createTextNode(` ${task.title} `), toggle);
     list.append(item);
   }
-  section.replaceChildren(element("h2", "", "我的出发准备事项"), list, button("在日程与任务中管理进度", () => changeView("tasks")));
+  const completed = tasks.filter(task => task.status === "done").length;
+  const progress = element("p", "", `个人准备已完成 ${completed} / ${tasks.length} 项`);
+  progress.setAttribute("role", "status");
+  section.replaceChildren(element("h2", "", "我的出发准备事项"), progress, list,
+    button("在日程与任务中管理进度", () => changeView("tasks")));
 }
 function updateProgress() {
   const total = state.catalog.tasks.length;
@@ -453,18 +483,38 @@ function openDormBeds(roomType) {
   renderDormBeds(roomType);
   changeView("dorm-bed");
 }
+let dormViewerLoad;
 function renderDormBeds(roomType) {
   const room = state.dorm.rooms[roomType];
   $("#dorm-bed-title").textContent = `${room.name} · 床位选择`;
   $("#dorm-bed-room-name").textContent = `${room.name} · ${room.layout}`;
-  $("#dorm-bed-subtitle").textContent = "序号标在俯视图的床铺位上（下方书桌不标号），点击序号查看优缺点。";
+  $("#dorm-bed-subtitle").textContent = "点选立体床铺或床号查看详情，加入「我的理想床位」对比。";
   $("#dorm-bed-tip").textContent = room.tip;
+  const photos = $("#dorm-room-photos");
+  photos.replaceChildren();
+  const references = roomType === "siren"
+    ? [["四人寝床位", room.env_img], ["四人寝洗手台", "/dorm-images/siren-sink.jpg"], ["四人寝卫生间", "/dorm-images/siren-toilet.jpg"]]
+    : [["六人寝床位", room.env_img], ["六人寝卫浴与洗手台", "/dorm-images/liuren-bath.jpg"]];
+  for (const [name, src] of references) {
+    const photo = element("a");
+    photo.href = src;
+    photo.target = "_blank";
+    photo.rel = "noopener";
+    const thumbnail = element("img");
+    thumbnail.src = src;
+    thumbnail.alt = name;
+    thumbnail.loading = "lazy";
+    photo.append(thumbnail, element("span", "", name));
+    photos.append(photo);
+  }
   const img = $("#dorm-bed-image");
   [img.width,img.height] = roomType === "siren" ? [300,754] : [675,1366];
   img.src = room.select_img;
   img.alt = `${room.name}俯视图`;
   const pins = $("#dorm-bed-pins");
   pins.replaceChildren();
+  const list = $("#dorm-room-list");
+  list.replaceChildren();
   room.beds.forEach(bed => {
     const pin = button(bed.id, () => showBedDialog(roomType, bed), "bed-pin");
     pin.style.left = `${bed.x}%`;
@@ -475,6 +525,20 @@ function renderDormBeds(roomType) {
     pin.setAttribute("aria-label", `查看${bed.name}详情`);
     if (isIdealBed(roomType, bed.id)) pin.classList.add("ideal");
     pins.append(pin);
+    list.append(button(bed.name, () => showBedDialog(roomType, bed), "secondary"));
+  });
+  dormViewerLoad ??= ["/campus3d/three.min.js", "/dorm-room.js"].reduce((ready, src) => ready.then(() =>
+    new Promise((resolve, reject) => {
+      const script = element("script");
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.append(script);
+    })), Promise.resolve());
+  dormViewerLoad.then(() => {
+    if (state.dormRoom === roomType) window.DormRoom.show(roomType, room.beds, bed => showBedDialog(roomType, bed));
+  }).catch(() => {
+    $("#dorm-room-caption").textContent = "可用平面图或床号列表查看床位。";
   });
   renderIdealBeds();
 }

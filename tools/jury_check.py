@@ -22,6 +22,22 @@ def verify():
     with TemporaryDirectory(prefix=".jury-check-", dir=ROOT) as data:
         settings = Settings(data_dir=Path(data), allow_search=True, search_provider="official")
         app = Application(settings)
+        natural_questions = {
+            "开学得带啥？高铁下来有迎新车吗？": ["identity", "travel"],
+            "我去报到，身份证和录取通知书要带吗？订票前先核对什么？": ["identity", "notice"],
+            "新生坐火车过去，有车接送吗？哪天能到校？": ["travel", "notice"],
+            "入学要带啥？下车了怎么去？出发前先查什么？": ["identity", "travel", "notice"],
+            "新生要带什么证件？": [],
+            "周末下车后怎么去商场，出发前先查什么？": [],
+            "2027级开学带啥、在哪接驳？": [],
+        }
+        for question, expected in natural_questions.items():
+            prepared = app.answerer.prepare(question, [])
+            guided = prepared["guided_arrival"]
+            assert (guided[2] if guided else []) == expected, question
+            if prepared["target_year"]:
+                content, _ = app.answerer.generate(question, prepared)
+                assert "2024" not in content and "2027" in content, content
         with ThreadingHTTPServer(("127.0.0.1", 0), handler_for(app)) as httpd:
             thread = Thread(target=httpd.serve_forever, daemon=True)
             thread.start()
@@ -84,6 +100,7 @@ def verify():
     return {
         "passed": True, "startup_to_health_seconds": start_time, "first_local_answer_seconds": ask_time,
         "elapsed_seconds": round(perf_counter() - started, 3), "remote_model_calls": 0,
+        "natural_question_cases": len(natural_questions),
         "checks": ["本地首页及健康检查", "首次问答及来源", "模拟官网不可达与本地回退",
                    "复合报到问答分段引用、选项保存、重复保存及会话隔离",
                    "报到地点包含办理建议与往年参考标注",

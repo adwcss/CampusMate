@@ -250,6 +250,8 @@ def handler_for(application):
                 for name, mime in {"index.html": "text/html", "campus.css": "text/css", "campus.js": "text/javascript", "three.min.js": "text/javascript", "places.json": "application/json"}.items():
                     files["/campus3d/" + name] = (ROOT / "frontend/campus3d" / name, mime + "; charset=utf-8")
                 files["/campus3d/"] = (ROOT / "frontend/campus3d/index.html", "text/html; charset=utf-8")
+                files["/dorm-room.js"] = (ROOT / "frontend/dorm-room.js", "text/javascript; charset=utf-8")
+                files["/dorm-room.css"] = (ROOT / "frontend/dorm-room.css", "text/css; charset=utf-8")
                 files["/orientation.js"] = (ROOT / "frontend/orientation.js", "text/javascript; charset=utf-8")
                 files["/preparation.js"] = (ROOT / "frontend/preparation.js", "text/javascript; charset=utf-8")
                 files["/preparation.css"] = (ROOT / "frontend/preparation.css", "text/css; charset=utf-8")

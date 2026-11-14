@@ -21,6 +21,7 @@
   <script src="/orientation.js" defer></script>
   <script src="/preparation.js" defer></script>
   <script src="/app.js" defer></script>
+  <link rel="stylesheet" href="/dorm-room.css">
 </head>
 <body>
 <!-- Decorative motifs derived from the supplied character: waves, birds and red bridge. -->
@@ -188,9 +189,23 @@
         <div>
           <div class="map-toolbar"><h2 id="dorm-bed-room-name">宿舍床位</h2></div>
           <div id="dorm-bed-tip" class="notice"></div>
-          <div class="map-viewport"><div class="map-canvas" id="dorm-bed-canvas"><img src="/dorm-images/liuren-plan.jpg" alt="宿舍床位示意图" id="dorm-bed-image"><div id="dorm-bed-pins"></div></div></div>
+          <div class="dorm-room-controls" aria-label="宿舍视角">
+            <button id="dorm-room-mode" class="secondary" type="button" aria-pressed="false">查看平面图</button>
+            <button data-dorm-camera="left" class="secondary" type="button" aria-label="向左旋转">↶</button>
+            <button data-dorm-camera="right" class="secondary" type="button" aria-label="向右旋转">↷</button>
+            <button data-dorm-camera="in" class="secondary" type="button" aria-label="放大">＋</button>
+            <button data-dorm-camera="out" class="secondary" type="button" aria-label="缩小">−</button>
+            <button data-dorm-camera="top" class="secondary" type="button" aria-pressed="false">俯视</button>
+            <button data-dorm-camera="reset" class="secondary" type="button">复位</button>
+          </div>
+          <div id="dorm-room-stage" class="dorm-room-stage" hidden></div>
+          <p id="dorm-room-caption" class="dorm-room-caption" role="status"></p>
+          <details class="dorm-room-references"><summary>对照宿舍总览实拍</summary><div id="dorm-room-photos"></div><a href="/?view=dorm&school_id=hnvust">查看宿舍总览（含公共洗衣房）</a></details>
+          <div class="map-viewport" id="dorm-room-plan"><div class="map-canvas" id="dorm-bed-canvas"><img src="/dorm-images/liuren-plan.jpg" alt="宿舍床位示意图" id="dorm-bed-image"><div id="dorm-bed-pins"></div></div></div>
+          <div id="dorm-room-list" class="dorm-room-controls" aria-label="按编号选择床位"></div>
         </div>
         <aside class="map-detail">
+          <div class="dorm-room-guide"><img src="/assets/cover-portrait-v3.png" alt="封面校园向导"><span>选一个床号，看看靠门、靠窗和中间位的差别。</span></div>
           <h2>我的理想床位</h2>
           <div id="ideal-beds" class="ideal-beds"></div>
         </aside>

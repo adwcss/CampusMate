@@ -1,0 +1,17 @@
+.dorm-room-controls{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.dorm-room-controls button{min-height:40px}
+.dorm-room-stage{position:relative;height:clamp(400px,60vh,640px);overflow:hidden;border:1px solid var(--line);border-radius:16px;background:radial-gradient(ellipse at 46% 39%,#fff8e9,#d5dfef 76%)}
+.dorm-room-stage canvas{display:block;touch-action:none;cursor:grab}
+.dorm-room-stage canvas:active{cursor:grabbing}
+.dorm-room-marker{position:absolute;z-index:1;display:grid;place-items:center;transform:translate(-50%,-50%);width:34px;height:34px;min-height:0;padding:0;border:2px solid #fff;border-radius:50%;background:#314c7a;color:#fff;box-shadow:0 3px 10px #22345160;cursor:pointer}
+.dorm-room-marker[hidden],#dorm-room-stage[hidden],#dorm-room-plan[hidden]{display:none}
+.dorm-room-caption{font-size:.88rem;color:var(--muted);margin:8px 0}
+.dorm-room-references{margin:12px 0;color:var(--ink)}
+.dorm-room-references summary{cursor:pointer}
+#dorm-room-photos{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+#dorm-room-photos a{display:grid;gap:5px;max-width:120px;font-size:.85rem}
+#dorm-room-photos img{width:112px;height:80px;object-fit:cover;border-radius:8px}
+.dorm-room-guide{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:16px;border-radius:14px;background:var(--soft)}
+.dorm-room-guide img{width:84px;height:80px;object-fit:cover;object-position:50% 18%;border-radius:10px}
+.dorm-room-guide span{font-size:.9rem}
+@media(max-width:640px){.dorm-room-stage{height:390px}.dorm-room-marker{width:30px;height:30px}}
