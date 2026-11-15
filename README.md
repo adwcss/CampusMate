@@ -90,6 +90,10 @@ node --test tools/verify_appearance_state.mjs
 
 ## 代码与历史
 
+### 开源许可
+
+CampusMate 项目原创程序代码及其原创开发文档采用 [MIT 许可证](LICENSE)。PixiJS 和 Three.js 随附各自的许可。学校资料、地图、照片、角色插画与其他素材的使用权遵循原权利人的条款。
+
 核心运行文件仍为`run.py`、`backend/main.py`、`backend/answer.py`、`backend/store.py`与`frontend/`，新增学校注册、清单知识加载、搜索接口、插画地图和报到建议模块。旧Streamlit/FastAPI/Chroma依赖文件仅为继承遗留，不用于当前启动路径。
 
 本次输入不含`.git`或可恢复bundle，因而新建仓库的首提交只记录**收到的解压目录基线**，之后才记录真实改造；不重建README中提及但本次未提供的旧提交。历史README、旧截图、原交付清单、既有Prompt素材记录保留作历史资料，不作为本轮操作或校验的证明。完整旧README见`docs/README-legacy-1.6.md`。交付包附`history.bundle`，可用`git clone history.bundle restored-campusmate`恢复本轮真实提交。
