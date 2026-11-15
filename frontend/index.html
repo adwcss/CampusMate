@@ -47,7 +47,7 @@
 </div>
 <template id="campus-heading-template"><svg class="campus-heading-art" viewBox="0 0 800 300" aria-hidden="true" focusable="false"><use href="#campus-waves"/><use href="#campus-bridge" x="540" y="15" width="180" height="230"/><use class="campus-birds" href="#campus-birds" x="325" y="40" width="260" height="100"/></svg><img class="campus-heading-figure" width="1122" height="1402" alt="" aria-hidden="true" decoding="async" hidden></template>
 <a class="skip" href="#main">跳到主要内容</a>
-<aside class="sidebar">
+<aside class="sidebar" id="tool-sidebar">
   <a class="brand" href="/?view=arrival" aria-label="初到新生指南首页"><span class="brand-icon" aria-hidden="true">初</span><span><strong>初到</strong><small>河职大新生指南</small></span></a>
   <nav aria-label="主要导航">
     <a href="/?view=journey" data-view="journey"><span aria-hidden="true">✦</span>校园探索长卷</a>
@@ -67,6 +67,7 @@
   <div class="sidebar-note"><span class="status-dot" aria-hidden="true"></span><strong id="mode-label">正在连接资料库…</strong><p id="mode-detail">回答会附上资料与适用范围。</p></div>
   <div class="sidebar-footer"><button id="theme-toggle" class="text-button" aria-haspopup="dialog" aria-controls="appearance-dialog">外观与背景</button><a id="school-home" href="https://www.hnvust.cn/" target="_blank" rel="noopener noreferrer">学校官网</a><small>独立开发作品，非学校官方服务</small></div>
 </aside>
+<div class="sidebar-resizer" role="separator" aria-label="调整左侧菜单宽度" aria-orientation="vertical" aria-controls="tool-sidebar" tabindex="0"></div>
 <div class="workspace">
   <header class="topbar"><label class="school-picker" for="school-select">当前学校<select id="school-select" aria-label="选择学校"><option value="hnvust">河南科技职业大学</option></select></label><div><span id="knowledge-meta">正在读取资料…</span><button class="text-button" id="appearance-open" aria-haspopup="dialog" aria-controls="appearance-dialog">外观</button><button class="text-button" id="export">导出我的记录</button></div></header>
   <p id="school-status" class="school-status" role="status">正在读取学校配置…</p>

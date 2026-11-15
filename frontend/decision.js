@@ -64,7 +64,7 @@ function decisionCard(item) {
   if (item.works) details.append(element("p", "", `${participation ? "任务练习" : "典型工作"}：${item.works}`));
   if (item.audience || item.fit) details.append(element("p", "", `${participation ? "适合兴趣" : "适合人群"}：${item.audience || item.fit}`));
   if (item.pros) details.append(element("p", "", `位置参考：${item.pros.join("；")}`));
-  if (item.kind === "contest") details.append(element("p", "", `原指南参考标签：${item.level}。当届参赛条件、费用、赛程与本校认定待核对。`));
+  if (item.kind === "contest") details.append(element("p", "", `原指南参考标签：${item.level}。建议通过主办方公告了解当届参赛条件、费用和赛程。`));
   card.append(details);
   if (item.reasons) {
     const reasons = element("ul", "match-reasons");
@@ -132,7 +132,7 @@ function showComparison() {
     Object.entries(state.explore.priorities).forEach(([key, label]) => rows.push([`${label}参考 0–3`, i => `${i.metrics[key]}/3`]));
     rows.push(["注意点", i => i.cons.join("；")]);
   } else {
-    rows.push(["活动 / 工作", i => (i.activities || []).join("、") || i.works || "当届内容待核对"], ["适合人群", i => i.audience || i.fit || "请先了解准备基础"]);
+    rows.push(["活动 / 工作", i => (i.activities || []).join("、") || i.works || "建议查看当届活动公告"], ["适合人群", i => i.audience || i.fit || "请先了解准备基础"]);
   }
   if (items[0].advice) rows.push(["入门建议", i => i.advice], ["参考来源", i => i.source]);
   else rows.push(["资料与限制", i => `${i.source}。${i.note}`]);

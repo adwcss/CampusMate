@@ -7,11 +7,15 @@
 #view-preparation label{display:flex;flex-direction:column;gap:7px;font-size:12px;line-height:1.7;min-width:0}
 #view-preparation input,#view-preparation select,#view-preparation textarea{width:100%;min-width:0;min-height:42px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit}
 .departure-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:18px}.departure-actions span{font-size:12px;color:var(--warning)}
-#prep-reload{white-space:nowrap}.packing-section>.decision-category{margin:12px 0}.packing-group{font-size:15px;color:var(--forest);padding:20px 0 8px;border-bottom:1px solid var(--line)}
-.packing-row{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:12px 20px;padding:17px 0;border-bottom:1px solid var(--line)}
-.packing-info h4{font-size:15px;line-height:1.7;overflow-wrap:anywhere}.packing-info p{font-size:12px;color:var(--muted);margin:7px 0;line-height:1.8}
+#prep-reload{white-space:nowrap}.packing-section>.decision-category{margin:12px 0}
+.packing-group{font-size:19px;color:var(--forest);margin:16px 0 0;padding:8px 0;border-bottom:1px solid var(--line)}
+.packing-row{display:grid;grid-template-columns:minmax(0,1fr) 280px;align-items:start;gap:6px 20px;padding:12px 0;border-bottom:1px solid var(--line)}
+.packing-info h4{font-size:18px;margin:0;line-height:1.45;overflow-wrap:anywhere}
+.packing-info p{font-size:15px;color:var(--muted);margin:4px 0;line-height:1.55}
+.packing-info .badge{font-size:13px}
 .packing-item-form{display:grid;grid-template-columns:65px minmax(100px,1fr) 90px;gap:8px;align-items:end}.packing-item-form button{font-size:12px;padding:9px 8px;min-height:42px}
 .packing-row-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:14px}.packing-row-actions button{font-size:12px}
+.packing-row-actions:empty{display:none}
 #packing-add{display:grid;grid-template-columns:minmax(0,1fr) 70px 100px;gap:12px;align-items:end;padding:24px 0 12px}#packing-add button{font-size:12px;white-space:nowrap}
 .packing-evidence{font-size:13px;margin:20px 0}.packing-evidence summary{cursor:pointer;color:var(--forest)}.packing-evidence p{margin:12px 0;color:var(--muted);line-height:1.9}
 .preparation-aside{border-left:1px solid var(--line);padding-left:24px}.preparation-aside section{padding:22px 0;border-bottom:1px solid var(--line)}.preparation-aside h3{font-size:14px;line-height:1.8}.preparation-aside p{font-size:12px;line-height:1.9;color:var(--muted);margin:10px 0}.preparation-aside .text-button,.preparation-aside .inline-link{display:block;font-size:12px;text-align:left;line-height:1.8;margin-top:9px}

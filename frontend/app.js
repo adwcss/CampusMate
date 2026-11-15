@@ -1,4 +1,40 @@
 "use strict";
+{
+  const divider = document.querySelector(".sidebar-resizer");
+  const sidebar = document.getElementById("tool-sidebar");
+  const width = () => Math.round(sidebar.getBoundingClientRect().width);
+  const maxWidth = () => Math.floor(Math.min(380, innerWidth * .4));
+  const updateValue = () => {
+    divider.setAttribute("aria-valuemax", maxWidth());
+    divider.setAttribute("aria-valuenow", width());
+  };
+  const resize = value => {
+    document.body.style.setProperty("--sidebar-width", `${Math.min(maxWidth(), Math.max(180, value))}px`);
+    updateValue();
+  };
+  let drag = null;
+  divider.setAttribute("aria-valuemin", 180);
+  divider.addEventListener("focus", updateValue);
+  divider.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || drag) return;
+    drag = {id:event.pointerId, origin:event.clientX, width:width()};
+    divider.setPointerCapture(event.pointerId);
+    divider.dataset.dragging = "";
+  });
+  divider.addEventListener("pointermove", event => {
+    if (drag?.id === event.pointerId) resize(drag.width + event.clientX - drag.origin);
+  });
+  divider.addEventListener("lostpointercapture", () => {
+    drag = null;
+    delete divider.dataset.dragging;
+  });
+  divider.addEventListener("keydown", event => {
+    const adjustment = {ArrowLeft:-16, ArrowRight:16}[event.key];
+    if (!adjustment) return;
+    event.preventDefault();
+    resize(width() + adjustment);
+  });
+}
 const $ = (selector) => document.querySelector(selector);
 const LABELS = {official_verified: "已核实官方文件", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考", web_snippet: "官方域名搜索摘要 · 正文待核验", official_notice_link: "学校官网公告入口", official_article: "学校官网正文已读取"};
 const state = {catalog: null, sources: [], checked: {}, messages: [], busy: false, faq: 0, zoom: 1, mapCategory: "", mapQuery: "", session: "", view: "chat", explore: null, saved: [], profile: null, recommendations: null, recommendKind: "bed", compare: [], dorm: null, dormRoom: null, idealBeds: [], contest: null, contestCat: "", contestLevel: "", contestKw: "", club: null, clubCat: "", clubKw: "", union: null, unionCat: "", unionKw: ""};
