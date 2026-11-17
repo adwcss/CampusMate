@@ -1,12 +1,13 @@
 {
   "passed": true,
-  "startup_to_health_seconds": 0.052,
-  "first_local_answer_seconds": 0.015,
-  "elapsed_seconds": 0.833,
+  "startup_to_health_seconds": 0.047,
+  "first_local_answer_seconds": 0.014,
+  "elapsed_seconds": 0.794,
   "remote_model_calls": 0,
   "natural_question_cases": 7,
   "checks": [
     "本地首页及健康检查",
+    "河南科技职业大学单校入口",
     "首次问答及来源",
     "模拟官网不可达与本地回退",
     "复合报到问答分段引用、选项保存、重复保存及会话隔离",
@@ -16,7 +17,7 @@
     "封面运行库"
   ],
   "scope": "自动化 HTTP 检查；联网故障使用模拟响应；不含下载安装 Python 与人工浏览器操作时间。",
-  "archive_sha256": "192359e208763df6b135c1e061871d5ac7a3528cbe9a540e021be5515dd8959d",
-  "files_verified": 217,
+  "archive_sha256": "f4c0ba8a5193fe25c9701e6251edd6da08c971415e5f176e5953f4633ee4d896",
+  "files_verified": 206,
   "clean_extract_verified": true
 }

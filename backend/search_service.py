@@ -37,7 +37,7 @@ class SearchService:
 
     def enabled(self):
         if self.settings.search_provider == "official":
-            return self.settings.allow_search and bool(self.notices.pages)
+            return self.settings.allow_search and bool(self.notices.pages or self.notices.articles)
         return bool(self.settings.allow_search and self.settings.search_provider == "brave"
                     and self.settings.search_key and self.school["official_domains"])
 

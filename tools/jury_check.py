@@ -53,7 +53,11 @@ def verify():
                 health = json.loads(request("/api/health"))
                 start_time = round(perf_counter() - started, 3)
                 assert health["status"] == "ok" and not health["remote_enabled"]
-                assert b'id="view-journey"' in request("/")
+                schools = json.loads(request("/api/schools"))["schools"]
+                assert [school["school_id"] for school in schools] == ["hnvust"]
+                homepage = request("/").decode()
+                assert 'id="view-journey"' in homepage
+                assert '<span class="school-picker">河南科技职业大学</span>' in homepage
                 ask_started = perf_counter()
                 body = request("/api/ask", {"session": session, "question": "新生报到要带什么材料？", "retrieval_mode": "local"}).decode()
                 ask_time = round(perf_counter() - ask_started, 3)
@@ -101,7 +105,7 @@ def verify():
         "passed": True, "startup_to_health_seconds": start_time, "first_local_answer_seconds": ask_time,
         "elapsed_seconds": round(perf_counter() - started, 3), "remote_model_calls": 0,
         "natural_question_cases": len(natural_questions),
-        "checks": ["本地首页及健康检查", "首次问答及来源", "模拟官网不可达与本地回退",
+        "checks": ["本地首页及健康检查", "河南科技职业大学单校入口", "首次问答及来源", "模拟官网不可达与本地回退",
                    "复合报到问答分段引用、选项保存、重复保存及会话隔离",
                    "报到地点包含办理建议与往年参考标注",
                    "清单写入及重启后读取", "二维地图和三维数据", "封面运行库"],
