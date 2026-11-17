@@ -94,6 +94,7 @@ function changeView(view, push = true) {
   if (state.view === "arrival" && orientationReady) selectRehearsal(push ? rehearsalCase : new URLSearchParams(location.search).get("case"), false);
   if (state.view === "preparation") document.title = "出发准备台 · 初到新生指南";
   if (state.view === "map" && orientationReady) { if (!push) routeOnly = new URLSearchParams(location.search).get("route") === "1"; renderItinerary(); renderPlaces(); }
+  if (state.view === "map" && state.school && !state.school.legacy_content) showOfficialMap(state.school);
   if (state.view === "tasks" && plannerReady) { if (!push) readTaskFilters(); renderPlanner(); }
   if (state.view === "checklist" && plannerReady) renderPersonalArrival();
   if (state.view === "preparation" && preparationReady) loadPreparation(false).catch(error => { $("#prep-status").textContent = error.message; });
@@ -207,7 +208,11 @@ function messageNode(message) {
   wrapper.append(element("span", "avatar", message.role === "user" ? "你" : "初"));
   const content = element("div", "message-content");
   const name = element("div", "message-name", message.role === "user" ? "你" : "初到资料助手");
-  if (message.role === "assistant") name.append(element("span", "badge", message.mode === "remote_llm" ? "AI 资料回答" : "本地资料回答"));
+  if (message.role === "assistant") {
+    const lookupAdvice = !message.sources?.length && ["unavailable", "no_official_results", "not_configured"].includes(message.deepseek_status);
+    const label = message.mode === "deepseek_web" ? "DeepSeek 联网回答" : message.retrieval_mode === "official" ? "官网联网查询" : message.mode === "remote_llm" ? "AI 资料回答" : lookupAdvice ? "查找建议" : "本地资料回答";
+    name.append(element("span", "badge", label));
+  }
   const body = element("div", "message-body", message.content);
   content.append(name, body);
   if (message.conflicts?.length) {
@@ -216,7 +221,7 @@ function messageNode(message) {
     message.conflicts.forEach(conflict => box.append(element("p", "", conflict.message)));
     content.append(box);
   }
-  if (message.retrieval_mode === "enhanced") content.append(element("p", "badge", message.web_used ? "本地与联网并行检索 · 可打开官方原文" : "已请求联网增强 · 本次使用本地资料"));
+  if (message.retrieval_mode === "enhanced" && message.mode !== "deepseek_web") content.append(element("p", "badge", message.web_used ? "附联网出处 · 可打开原文" : "本次使用本地资料"));
   if (message.sources?.length) content.append(citations(message.sources));
   if (message.check_links?.length) {
     const checks = element("details", "verification-links"); checks.append(element("summary", "", "核对最新公开通知"), element("p", "", "点击后打开外部网站。搜索只使用固定主题词，不发送完整问题；网页内容和当前安排需自行核对。"));
@@ -264,7 +269,8 @@ async function ask(question) {
   $("#clear-chat").disabled = true;
   $("#question").value = "";
   const retrievalMode = $("#retrieval-mode").value;
-  const lookupMessage = retrievalMode === "enhanced" ? "正在查阅本地资料和联网来源…" : "正在查找本地资料…";
+  const onlineOnly = !state.school?.legacy_content;
+  const lookupMessage = onlineOnly ? "正在查阅本校官网…" : retrievalMode === "enhanced" ? "正在查阅本地资料和联网来源…" : "正在查阅资料，必要时联网补充…";
   $("#request-status").textContent = lookupMessage;
   $("#chat-welcome").hidden = true;
   $("#conversation").append(messageNode({role: "user", content: question}).wrapper);
@@ -298,7 +304,9 @@ async function ask(question) {
     state.messages = (await api(`/api/history?session=${state.session}`)).messages;
     renderMessages();
     const status = $("#request-status");
-    if (metadata.web_used) status.textContent = "已整理本地与联网来源，可展开引用";
+    if (metadata.mode === "deepseek_web") status.textContent = "已附联网出处，可展开引用查看原文";
+    else if (onlineOnly) status.textContent = metadata.web_used ? "可展开查看官网出处" : "可查看下方查询入口";
+    else if (metadata.web_used) status.textContent = "已整理本地与联网来源，可展开引用";
     else if (retrievalMode === "enhanced") status.textContent = "本次使用本地资料，可查看回答中的查询建议";
     else if (metadata.mode === "remote_llm") status.textContent = "AI 回答已完成，可查看来源";
     else if (metadata.remote_attempted) status.textContent = "已切换为本地资料回答";
@@ -820,8 +828,8 @@ async function boot() {
     mapCategory.addEventListener("change", event => { state.mapCategory = event.target.value; renderPlaces(); });
     $("#map-search").addEventListener("input", event => { state.mapQuery = event.target.value.trim(); renderPlaces(); });
     $("#knowledge-meta").textContent = `${stats.remote_enabled ? "AI 资料" : "本地资料"} · ${stats.document_count} 份 · ${stats.chunk_count} 条`;
-    $("#mode-label").textContent = stats.remote_enabled ? "AI 资料模式" : "本地资料模式";
-    $("#mode-detail").textContent = stats.remote_enabled ? "已显式启用外部模型，可能产生费用。" : "无需 API 额度，所有资料在本机检索。";
+    $("#mode-label").textContent = stats.remote_enabled ? "本地知识库 + DeepSeek" : "本地资料模式";
+    $("#mode-detail").textContent = stats.deepseek_search_enabled ? "优先查本地资料，资料不足时通过 DeepSeek 联网并附出处。" : stats.remote_enabled ? "先检索本地资料，再按引用生成回答。" : "无需 API 额度，所有资料在本机检索。";
     renderSearchMode(stats);
     renderFaq(); renderMessages(); renderTasks(); renderPlaces(); renderDormEnv(); renderContest(); renderClub(); renderUnion(); renderSources(); setZoom(1);
     if (state.view === "dorm-bed") {

@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import re
 import threading
 import time
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from . import __version__
 from .answer import Answerer
@@ -35,7 +35,7 @@ def valid_session(value):
 class Application:
     def __init__(self, settings=None, school_id=DEFAULT_SCHOOL, registry=None, contexts=None):
         self.settings = settings or Settings.load()
-        self.registry = registry if registry is not None else load_schools()
+        self.registry = registry if registry is not None else {DEFAULT_SCHOOL: load_schools()[DEFAULT_SCHOOL]}
         self.school = select_school(self.registry, school_id)
         self.school_id = school_id
         self.places = self.school.get("places", PLACES if self.school.get("legacy_content") else [])
@@ -64,7 +64,8 @@ class Application:
     def stats(self):
         return {"school_id": self.school_id, "school": self.school, "search_provider": self.settings.search_provider, "search_enabled": self.answerer.search.enabled(), "version": __version__, "document_count": len({c["source"] for c in self.retriever.chunks}), "chunk_count": len(self.retriever.chunks),
                 "updated_at": "2026-10-14", "answer_mode": "remote_llm" if self.settings.remote_enabled() else "local_evidence",
-                "remote_enabled": self.settings.remote_enabled(), "received_key_blocked": self.settings.key_blocked(), "remote_calls": self.answerer.remote_calls}
+                "remote_enabled": self.settings.remote_enabled(), "deepseek_search_enabled": self.answerer.deepseek_search.enabled(),
+                "received_key_blocked": self.settings.key_blocked(), "remote_calls": self.answerer.remote_calls}
 
     def preparation(self, session):
         current = self.store.preparation(session)
@@ -100,7 +101,7 @@ def handler_for(application):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Referrer-Policy", "no-referrer")
-            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
             self.end_headers()
 
         def json(self, value, status=200):
@@ -166,11 +167,29 @@ def handler_for(application):
                     return self.json({"error": "请求来源不受支持。"}, 403)
                 url = urlsplit(self.path)
                 args = parse_qs(url.query)
+                if url.path == "/" and any(school not in root_application.registry for school in args.get("school_id", [])):
+                    args["school_id"] = [DEFAULT_SCHOOL]
+                    self.send_response(302)
+                    self.send_header("Location", "/?" + urlencode(args, doseq=True))
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
                 application = self.context()
                 if url.path == "/api/schools":
-                    return self.json({"schools": list(application.registry.values()), "default_school": DEFAULT_SCHOOL})
+                    return self.json({"schools": list(root_application.registry.values()), "default_school": DEFAULT_SCHOOL})
                 if url.path == "/api/map":
                     return self.json({"places": application.places, "notice": application.school["map_notice"], "image": application.school.get("map_image", "/campus-map.svg?school_id=" + application.school_id), "original_image": application.school.get("map_original"), "width": application.school.get("map_width", 928), "height": application.school.get("map_height", 1120)})
+                if url.path == "/api/official-map":
+                    try:
+                        result = application.answerer.search.notices.map_asset()
+                    except (OSError, ValueError, LookupError):
+                        result = None
+                    if not result:
+                        return self.json({"error": "地图预览暂不可用，请查看官网原件。"}, 404)
+                    raw, kind = result
+                    self.respond_headers(200, kind, len(raw))
+                    self.wfile.write(raw)
+                    return
                 if url.path == "/campus-map.svg":
                     from .campusmap import render_map
                     body = render_map(application.school).encode("utf-8")
@@ -304,9 +323,9 @@ def handler_for(application):
         def do_POST(self):
             try:
                 payload = self.body()
+                path = urlsplit(self.path).path
                 application = self.context(payload)
                 session = valid_session(payload.get("session", ""))
-                path = urlsplit(self.path).path
                 if path == "/api/arrival/from-answer":
                     answer_id, selected = payload.get("answer_id"), payload.get("selected")
                     if not isinstance(answer_id, str) or not isinstance(selected, list) or not 1 <= len(selected) <= 3 or not all(isinstance(key, str) for key in selected):
@@ -389,10 +408,13 @@ def handler_for(application):
                 retrieval_mode = payload.get("retrieval_mode", "local")
                 if retrieval_mode not in ("local", "enhanced"):
                     raise ValueError("检索模式无效。")
+                if not application.school.get("legacy_content"):
+                    retrieval_mode = "official"
                 prepared = application.answerer.prepare(question.strip(), history, retrieval_mode)
                 answer, mode = application.answerer.generate(question.strip(), prepared)
                 application.store.save(session, "user", question.strip())
                 response_payload = {"school_id": application.school_id, "sources": prepared["sources"], "warnings": prepared["warnings"], "mode": mode, "query": prepared["query"], "remote_attempted": prepared["remote_attempted"], "web_used": prepared["web_used"], "retrieval_mode": retrieval_mode, "search_status": prepared.get("search_status", "not_requested"), "conflicts": prepared.get("conflicts", []), "check_links": prepared["check_links"]}
+                response_payload["deepseek_status"] = prepared["deepseek_status"]
                 if guided := prepared["guided_arrival"]:
                     from .arrival import arrival_tasks
                     response_payload["arrival_actions"] = [

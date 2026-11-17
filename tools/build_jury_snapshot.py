@@ -15,12 +15,11 @@ from backend.retriever.splitter import DOC_FILES
 RUNTIME_DIRS = ("backend", "frontend", "config", "knowledge")
 SUFFIXES = {".py", ".html", ".js", ".css", ".json", ".txt", ".md", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".woff2"}
 TEXT_SUFFIXES = {".py", ".html", ".js", ".css", ".json", ".txt", ".md", ".svg", ".example", ".cmd"}
-ROOT_FILES = ["run.py", "README.md", ".env.example", "启动新生指南.cmd", "校园地图.png", "学校地图.jpg",
+ROOT_FILES = ["run.py", "README.md", "LICENSE", ".env.example", "启动新生指南.cmd", "校园地图.png", "学校地图.jpg",
               "四人间卫生间.jpg", "四人间洗手台.jpg", "六人间浴室洗手台.jpg", "四人间六人间洗衣房.jpg",
               "六人间床位.jpg", "六人宿舍俯视图.jpg", "四人间床位.jpg", "四人宿舍俯视图.jpg"]
-SUPPORT = ["tools/jury_check.py", "tools/migrate_legacy_data.py", "docs/评委十分钟复现.md", "docs/当前版技术说明.md",
-           "docs/参赛证据索引.md", "docs/迎新资料覆盖表.md", "docs/地图美化与接入.md",
-           "docs/jury-polish.md", "docs/arrival-source-audit.md", "docs/trusted-evidence-demo.md", "评审自检.cmd"]
+SUPPORT = ["tools/jury_check.py", "tools/migrate_legacy_data.py", "docs/迎新资料覆盖表.md",
+           "docs/地图美化与接入.md", "docs/single-school-review.md", "评审自检.cmd"]
 SECRET = re.compile(rb"(?i)\bsk-[0-9a-f]{32}\b|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
 
 
@@ -32,6 +31,10 @@ def package():
     for folder in RUNTIME_DIRS:
         for path in (ROOT / folder).rglob("*"):
             relative = path.relative_to(ROOT)
+            if relative.parts[:2] == ("config", "schools") and path.name != "hnvust.json":
+                continue
+            if relative.parts[0] == "knowledge" and relative.parts[1] != "hnvust":
+                continue
             if path.is_file() and not path.is_symlink() and not any(part.startswith(".") for part in relative.parts):
                 if path.suffix.lower() in SUFFIXES or path.name.startswith("LICENSE"):
                     names.add(relative)

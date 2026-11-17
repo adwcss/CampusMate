@@ -19,6 +19,7 @@ backend/vectorstore/db/
 .idea/
 *.swp
 .runtime/
+/.runtime-*/
 output/
 tmp/
 .venv-*/

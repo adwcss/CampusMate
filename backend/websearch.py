@@ -6,8 +6,6 @@ def verification_links(query, school=None):
     if school is None:
         from .schools import load_schools, DEFAULT_SCHOOL
         school = load_schools()[DEFAULT_SCHOOL]
-    if not school["official_domains"]:
-        return []
     # Fixed topic vocabulary: never place the full question, history or key in a URL.
     topic = "新生 入学须知"
     for words, value in [(("军训",), "新生 军训"), (("学费", "住宿费", "收费"), "新生 收费通知"),
@@ -18,6 +16,11 @@ def verification_links(query, school=None):
         if any(word in query for word in words):
             topic = value
             break
+    if not school["official_domains"]:
+        if school["school_id"].startswith("custom-"):
+            return [{"label": "搜索这所学校的公开通知",
+                     "url": "https://www.baidu.com/s?" + urlencode({"wd": school["name"] + " 官网 " + topic})}]
+        return []
     scoped = "site:" + school["official_domains"][0] + " " + school["name"] + " " + topic
     links = [{"label": "学校官网", "url": school["official_home"]},
              {"label": "搜索学校网站的相关通知", "url": "https://www.baidu.com/s?" + urlencode({"wd": scoped})}]

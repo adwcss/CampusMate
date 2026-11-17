@@ -1,6 +1,11 @@
 "use strict";
-let selectedSchoolId = new URLSearchParams(location.search).get("school_id") || "hnvust";
-// A page owns its school selection; another tab cannot silently retarget requests.
+const selectedSchoolId = "hnvust";
+const schoolPageUrl = new URL(location.href);
+if (schoolPageUrl.searchParams.has("school_id") && schoolPageUrl.searchParams.get("school_id") !== selectedSchoolId) {
+  schoolPageUrl.searchParams.set("school_id", selectedSchoolId);
+  history.replaceState(null, "", schoolPageUrl);
+}
+
 function schoolFetch(path, options = {}) {
   const headers = new Headers(options.headers || {});
   if (String(path).startsWith("/api/")) headers.set("X-CampusMate-School", selectedSchoolId);
@@ -12,16 +17,6 @@ async function initializeSchool() {
   const school = data.schools.find(row => row.school_id === selectedSchoolId);
   if (!school) throw new Error("学校配置不存在，请返回首页选择学校。");
   state.school = school;
-  const select = document.querySelector("#school-select");
-  select.replaceChildren(...data.schools.map(row => {
-    const option = element("option", "", row.name); option.value = row.school_id; return option;
-  }));
-  select.value = selectedSchoolId;
-  select.addEventListener("change", () => {
-    if (state.busy) { select.value = selectedSchoolId; toast("请等待当前回答完成再切换学校。"); return; }
-    const url = new URL(location.href); url.searchParams.set("school_id", select.value);
-    url.searchParams.set("view", "chat"); location.assign(url);
-  });
   document.querySelector(".brand strong").textContent = "CampusMate";
   document.querySelector(".brand small").textContent = school.short_name + " · 新生助手";
   document.querySelector(".intro-school").textContent = school.name;
@@ -115,9 +110,49 @@ function initializeArrivalGenerator() {
 
 function renderSearchMode(stats) {
   const hint = document.querySelector("#retrieval-hint");
-  hint.textContent = stats.search_enabled
-    ? `并行查找本地资料和${stats.search_provider === "brave" ? " Brave Search 收录的学校官网" : "本校官网公告"}；正文可核验时附原文。`
-    : "本校当前使用本地资料。联网不可用时会自动使用本地资料。";
+  if (!state.school.legacy_content) {
+    const select = document.querySelector("#retrieval-mode");
+    select.replaceChildren(new Option("自动查询学校官网", "enhanced"));
+    hint.textContent = stats.search_enabled ? "按问题查询本校公开网页，找到相关正文后附来源。" : "可通过查询链接查找本校公开通知。";
+    return;
+  }
+  const select = document.querySelector("#retrieval-mode");
+  select.options[0].textContent = stats.deepseek_search_enabled ? "自动检索（本地优先）" : "本地知识库";
+  hint.textContent = stats.deepseek_search_enabled
+    ? "默认优先查本地，资料不足时发送当前问题到 DeepSeek 检索公开资料，并附出处。请勿输入个人敏感信息。"
+    : stats.search_enabled ? "可选择联网增强，查阅本地资料与学校官网。" : "当前使用本地资料。";
+}
+
+async function showOfficialMap(school) {
+  if (document.querySelector("#official-map-preview")) return;
+  const notice = document.querySelector("#map-notice");
+  const preview = element("section", "official-map-preview");
+  preview.id = "official-map-preview";
+  notice.after(preview);
+  for (const selector of [".map-layout", ".map-search-controls"])
+    document.querySelector("#view-map " + selector).hidden = true;
+  if (!school.official_map_asset) {
+    notice.firstChild.textContent = school.official_map ? "请打开官网地图原件。" : "可通过学校官网查找校园地图。";
+    return;
+  }
+  notice.firstChild.textContent = "下方展示学校官网公布的地图，校区与更新日期请查看原件。";
+  const status = element("p", "", "正在加载官网地图…");
+  preview.append(status);
+  try {
+    const response = await fetch("/api/official-map?school_id=" + encodeURIComponent(school.school_id));
+    const kind = response.headers.get("Content-Type");
+    if (!response.ok || !["application/pdf", "image/jpeg", "image/png"].includes(kind)) throw new Error("地图不可用");
+    const isPdf = kind === "application/pdf";
+    const media = document.createElement(isPdf ? "iframe" : "img");
+    media.title = school.name + "官网校园地图";
+    if (!isPdf) media.alt = media.title;
+    const objectUrl = URL.createObjectURL(await response.blob());
+    media.src = objectUrl;
+    window.addEventListener("pagehide", () => URL.revokeObjectURL(objectUrl), {once: true});
+    status.replaceWith(media);
+  } catch {
+    status.textContent = "地图预览加载失败，请打开官网原件。";
+  }
 }
 
 async function bootTemplate() {
@@ -127,9 +162,9 @@ async function bootTemplate() {
   state.catalog = catalog; state.messages = history.messages; state.checked = checklist.checked;
   state.sources = sources.documents; state.explore = {items: []}; state.saved = [];
   await initializePlanner();
-  document.querySelector("#knowledge-meta").textContent = `${stats.document_count} 份本校资料`;
-  document.querySelector("#mode-label").textContent = stats.remote_enabled ? "AI 资料模式" : "本地资料模式";
-  document.querySelector("#mode-detail").textContent = "问答、任务和资料按当前学校保存。";
+  document.querySelector("#knowledge-meta").textContent = "学校官网查询";
+  document.querySelector("#mode-label").textContent = "官网联网查询";
+  document.querySelector("#mode-detail").textContent = "提问时查询本校公开网页，回答附出处。";
   const category = document.querySelector("#map-category");
   ["", ...new Set(catalog.places.map(place => place.category))].forEach(value => { const option = element("option", "", value || "所有区域"); option.value = value; category.append(option); });
   category.addEventListener("change", event => { state.mapCategory = event.target.value; renderPlaces(); });

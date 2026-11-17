@@ -192,7 +192,7 @@ class EvidenceTests(unittest.TestCase):
             self.assertTrue(settings.key_blocked())
 
     def test_remote_failure_falls_back_without_exposing_exception(self):
-        with patch("urllib.request.urlopen", side_effect=RuntimeError("sensitive upstream detail")):
+        with patch("urllib.request.OpenerDirector.open", side_effect=RuntimeError("sensitive upstream detail")):
             answerer = Answerer(self.retriever, Settings(allow_remote=True, api_key="synthetic-new-key"))
             prepared = answerer.prepare("学费怎么交", [])
             answer, mode = answerer.generate("学费怎么交", prepared)
@@ -206,7 +206,7 @@ class EvidenceTests(unittest.TestCase):
     def test_mocked_remote_success_retains_citations_and_attempt_marker(self):
         candidate = "从学校官网进入校园支付平台，核对当年通知。【1】"
         response = io.BytesIO(json.dumps({"choices": [{"message": {"content": candidate}}]}).encode())
-        with patch("urllib.request.urlopen", return_value=response) as remote:
+        with patch("urllib.request.OpenerDirector.open", return_value=response) as remote:
             answerer = Answerer(self.retriever, Settings(allow_remote=True, api_key="synthetic-new-key"))
             prepared = answerer.prepare("学费怎么交", [])
             answer, mode = answerer.generate("学费怎么交", prepared)
@@ -216,7 +216,7 @@ class EvidenceTests(unittest.TestCase):
 
     def test_invalid_remote_citation_falls_back_with_visible_warning(self):
         response = io.BytesIO(json.dumps({"choices": [{"message": {"content": "模型编造内容。【99】"}}]}).encode())
-        with patch("urllib.request.urlopen", return_value=response):
+        with patch("urllib.request.OpenerDirector.open", return_value=response):
             answerer = Answerer(self.retriever, Settings(allow_remote=True, api_key="synthetic-new-key"))
             prepared = answerer.prepare("学费怎么交", [])
             answer, mode = answerer.generate("学费怎么交", prepared)
@@ -224,6 +224,77 @@ class EvidenceTests(unittest.TestCase):
             self.assertNotIn("模型编造内容", answer)
             self.assertIn("引用不完整", answer)
             self.assertTrue(prepared["remote_attempted"])
+
+    def test_missing_contest_scope_searches_and_cites_real_result_urls(self):
+        question = "数学竞赛考哪方面的知识"
+        answerer = Answerer(self.retriever, Settings(allow_remote=True, api_key="synthetic-key", allow_search=True))
+        url = "https://www.cmathc.org.cn/tzgg/example.html"
+        hit = {"url": url, "title": "组委会通知", "summary": "数学类初赛考试内容包括数学分析、高等代数和解析几何。"}
+        fake = {**hit, "url": "https://cmathc.org.cn.example.com/fake"}
+        search_response = io.BytesIO(json.dumps({"results": [fake, hit]}).encode())
+        model_response = io.BytesIO(json.dumps({"choices": [{"message": {"content": "编造【99】"}}]}).encode())
+        with patch("urllib.request.OpenerDirector.open", side_effect=[search_response, model_response]) as remote:
+            prepared = answerer.prepare(question, [])
+            answer, mode = answerer.generate(question, prepared)
+        self.assertEqual(mode, "deepseek_web")
+        self.assertEqual(prepared["sources"][0]["urls"], [url])
+        self.assertEqual(len(prepared["sources"]), 1)
+        self.assertIn("【1】", answer)
+        self.assertIn("数学分析", answer)
+        self.assertNotIn("【99】", answer)
+        self.assertEqual(remote.call_args_list[0].args[0].full_url, "https://api.deepseek.com/v1/tools/search")
+
+    def test_local_answer_skips_paid_web_search(self):
+        answerer = Answerer(self.retriever, Settings(allow_remote=True, api_key="synthetic-key", allow_search=True))
+        with patch.object(answerer.deepseek_search, "search") as search:
+            self.assertTrue(answerer.prepare("学费怎么交", [])["sources"])
+            search.assert_not_called()
+
+    def test_ict_track_shorthand_retries_on_unrelated_search_results(self):
+        question = "华为ict网络赛道都考哪些知识点"
+        answerer = Answerer(self.retriever, Settings(allow_remote=True, api_key="synthetic-key", allow_search=True))
+        url = "https://e-campaign.huawei.com/ict/practice.html"
+        hit = {"url": url, "title": "华为 ICT 大赛实践赛",
+               "summary": "赛道一：网络\n考核内容包括路由协议、二层交换、网络安全和 WLAN。"}
+        unrelated = {**hit, "summary": "云赛道：考核内容包括大数据和人工智能。"}
+        impostor = {**hit, "url": "https://huawei.com.example.org/ict/practice.html"}
+        empty = io.BytesIO(json.dumps({"results": [unrelated, impostor]}).encode())
+        retry = io.BytesIO(json.dumps({"results": [hit]}).encode())
+        with patch("urllib.request.OpenerDirector.open", side_effect=[empty, retry]) as remote:
+            prepared = answerer.prepare(question, [])
+        self.assertEqual(prepared["deepseek_status"], "ok")
+        self.assertEqual([source["urls"][0] for source in prepared["sources"]], [url])
+        queries = [json.loads(call.args[0].data)["query"] for call in remote.call_args_list]
+        self.assertEqual(len(queries), 2)
+        self.assertTrue(all("site:huawei.com" in query for query in queries))
+
+    def test_contest_search_failure_returns_preparation_advice(self):
+        question = "数学竞赛考哪方面的知识"
+        answerer = Answerer(self.retriever, Settings(allow_remote=True, api_key="synthetic-key", allow_search=True))
+        with patch("urllib.request.OpenerDirector.open", side_effect=TimeoutError):
+            prepared = answerer.prepare(question, [])
+            answer, mode = answerer.generate(question, prepared)
+        self.assertEqual(prepared["deepseek_status"], "unavailable")
+        self.assertEqual(mode, "local_evidence")
+        self.assertIn("主办方的考试大纲", answer)
+        self.assertNotIn("力学", answer)
+
+    def test_model_reports_local_evidence_gap_then_searches(self):
+        question = "一卡通如何挂失"
+        answerer = Answerer(self.retriever, Settings(allow_remote=True, api_key="synthetic-key", allow_search=True))
+        local = answerer.prepare("学费怎么交", [])
+        local["query"] = question
+        insufficient = io.BytesIO(json.dumps({"choices": [{"message": {"content": "资料不足。"}}]}).encode())
+        online = {**local["sources"][0], "text": "可通过校园卡服务平台挂失。", "source_type": "deepseek_web",
+                  "urls": ["https://www.hnvust.cn/info/1000/1000.htm"]}
+        answer_response = io.BytesIO(json.dumps({"choices": [{"message": {"content": "可通过校园卡服务平台挂失。【1】"}}]}).encode())
+        with patch("urllib.request.OpenerDirector.open", side_effect=[insufficient, answer_response]), \
+                patch.object(answerer.deepseek_search, "search", return_value=([online], "ok")) as search:
+            answer, mode = answerer.generate(question, local)
+        search.assert_called_once_with(question)
+        self.assertEqual(mode, "deepseek_web")
+        self.assertEqual(local["sources"], [online])
+        self.assertIn("挂失。【1】", answer)
 
 
 class PersistenceTests(unittest.TestCase):

@@ -39,6 +39,14 @@ def load_schools():
             raise ValueError("学校官网必须位于配置的HTTPS官方域名")
         if "official_map" in value and not official_url(value["official_map"], value):
             raise ValueError("官网地图必须位于本校HTTPS官方域名")
+        if "official_map_asset" in value and not official_url(value["official_map_asset"], value):
+            raise ValueError("官网地图原图必须位于本校HTTPS官方域名")
+        articles = value.get("notice_articles", {})
+        if not isinstance(articles, dict) or len(articles) > 10 or any(
+            not official_url(url, value) or not isinstance(title, str) or not title.strip()
+            for url, title in articles.items()
+        ):
+            raise ValueError("官网文章入口配置无效")
         pages = value.get("notice_pages", [])
         if not isinstance(pages, list) or len(pages) > 5 or any(not official_url(page, value) for page in pages):
             raise ValueError("公告栏目必须位于本校HTTPS官方域名")

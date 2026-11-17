@@ -1,4 +1,5 @@
 """Discover official announcements and extract bounded article evidence."""
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 import hashlib
 from html.parser import HTMLParser
@@ -13,6 +14,7 @@ from urllib.robotparser import RobotFileParser
 from .schools import official_url
 
 AGENT = "CampusMateNotices"
+ARTICLE_PATH = r"(?:/[^/?#]+)*/(?:info/\d+/\d+\.htm|c\d+a\d+/page\.htm)"
 TOPIC_WORDS = (
     (r"报到|入学|迎新", ("报到", "入学", "迎新", "新生")),
     (r"招生|录取|专业", ("招生", "录取", "专业")),
@@ -42,7 +44,7 @@ class NoticeLinks(HTMLParser):
         href, title, words = self.anchor
         self.anchor = None
         title = " ".join((title or "".join(words)).split())
-        if len(title) >= 8:
+        if len(title) >= 5:
             self.items[href] = title[:180]
 
 
@@ -114,9 +116,25 @@ class OfficialNotices:
         self.school = school
         self.opener = opener
         self.pages = school.get("notice_pages", ())
+        self.articles = school.get("notice_articles", {})
         self.cache = {}
         self.robots = {}
         self.cache_lock = Lock()
+
+    def map_asset(self):
+        url = self.school.get("official_map_asset")
+        if not url or not self.allowed(url):
+            return None
+        request = Request(url, headers={"User-Agent": AGENT, "Referer": self.school["official_map"]})
+        with self.opener.open(request, timeout=6) as response:
+            raw = response.read(12_000_001)
+        if len(raw) > 12_000_000:
+            return None
+        for signature, mime in ((b"%PDF-", "application/pdf"), (b"\xff\xd8\xff", "image/jpeg"),
+                                (b"\x89PNG\r\n\x1a\n", "image/png")):
+            if raw.startswith(signature):
+                return raw, mime
+        return None
 
     def allowed(self, url):
         if not official_url(url, self.school):
@@ -136,7 +154,7 @@ class OfficialNotices:
 
     def verify(self, source, query):
         url = source["urls"][0]
-        if not official_url(url, self.school) or not re.fullmatch(r"/info/\d+/\d+\.htm", urlsplit(url).path):
+        if not official_url(url, self.school) or (url not in self.articles and not re.fullmatch(ARTICLE_PATH, urlsplit(url).path)):
             return source
         key = ("article", url)
         cached = self.cache.get(key)
@@ -189,7 +207,7 @@ class OfficialNotices:
             items = {}
             for href, title in links.items.items():
                 url = urljoin(page, href)
-                if official_url(url, self.school) and re.fullmatch(r"/info/\d+/\d+\.htm", urlsplit(url).path):
+                if official_url(url, self.school) and re.fullmatch(ARTICLE_PATH, urlsplit(url).path):
                     items[url] = title
             row = (items, datetime.now(timezone.utc).isoformat())
             ttl = 1800
@@ -204,17 +222,21 @@ class OfficialNotices:
         for pattern, synonyms in TOPIC_WORDS:
             if re.search(pattern, query):
                 words.update(synonyms)
-        if re.search(r"学校代码|国标代码|学校地址|章程|校区|招生办", query):
-            words.update(("招生章程", "招生"))
+        if re.search(r"学校代码|国标代码|地址|章程|校区|招生办", query):
+            words.update(("招生章程", "招生", "校区", "地址"))
         if not words:
             return [], "no_official_results"
         ranked = {}
-        available = False
+        available = bool(self.articles)
         years = set(re.findall(r"20\d{2}", query))
-        for page in self.pages:
-            if not official_url(page, self.school):
-                continue
-            items, fetched_at = self.index(page)
+        for url, title in self.articles.items():
+            score = sum(word in title for word in words)
+            if score:
+                ranked[url] = (score + 5 * any(year in title for year in years) + 1, title, None)
+        pages = [page for page in self.pages if official_url(page, self.school)]
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            indexes = list(pool.map(self.index, pages))
+        for items, fetched_at in indexes:
             available |= bool(fetched_at)
             for url, title in items.items():
                 score = sum(word in title for word in words)
@@ -230,5 +252,6 @@ class OfficialNotices:
                 "effective_year": None, "published_at": None, "collected_at": fetched_at, "retrieved_at": fetched_at,
                 "caveat": "此条仅提供学校官网公告标题和原文入口。具体时间、资格与办理要求请打开原文。",
             })
-        sources = [self.verify(source, query) for source in sources]
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            sources = list(pool.map(lambda source: self.verify(source, query), sources))
         return sources, "ok" if sources else "no_official_results" if available else "unavailable"
