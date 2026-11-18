@@ -23,7 +23,8 @@ def school_chunks(school):
     if metadata.get("school_id") != identity:
         raise ValueError("知识来源清单学校标识不一致")
     for source in metadata.get("sources", []):
-        if source.get("status") != "verified_download":
+        status = source.get("status")
+        if status not in {"verified_download", "verified_summary"}:
             continue
         path = (directory / source["file"]).resolve()
         if not path.is_relative_to(directory.resolve()) or not official_url(source["url"], school):
@@ -33,14 +34,18 @@ def school_chunks(school):
             raise ValueError("知识文件校验失败")
         if path.suffix != ".txt":
             continue  # Raw HTML/PDF preserved for inspection, not naively indexed.
+        summary = status == "verified_summary"
+        collected_at = source["verified_at"] if summary else source["downloaded_at"]
         for index, part in enumerate(raw.decode("utf-8").split("\n\n")):
             if not part.strip():
                 continue
             chunks.append({"id": hashlib.sha256((identity + source["file"] + str(index) + part).encode()).hexdigest()[:16],
                            "school_id": identity, "source": source["title"], "section": part.splitlines()[0][:100],
                            "text": part, "source_header": source["title"], "urls": [source["url"]],
-                           "source_type": "official_verified", "evidence_origin": "official_download",
-                           "effective_year": source.get("effective_year"), "collected_at": source["downloaded_at"],
+                           "source_type": "official_verified", "evidence_origin": "official_summary" if summary else "official_download",
+                           "document_kind": source.get("document_kind"),
+                           "trust_label": "依据官方正文整理" if summary else "官方文件已核实",
+                           "effective_year": source.get("effective_year"), "collected_at": collected_at,
                            "published_at": source.get("published_at"), "verified": True,
                            "caveat": source.get("caveat", "官方公开文件；适用范围以原文为准。")})
     return chunks

@@ -17,7 +17,7 @@ INTERESTS = {
     "service": ("组织与协作", ["组织", "统筹", "协调", "服务", "权益", "团队", "办公室"]),
 }
 PRIORITIES = {"quiet": "安静与睡眠", "light": "采光与通风", "access": "出入方便", "dry": "远离卫浴"}
-REFERENCE_NOTE = "交接参考资料，未确认本校实际开设、招新、参赛资格或学分认定。请向学院、团委及赛事主办方核对。"
+REFERENCE_NOTE = "建议把这份指南用作选赛参考。报名时可向学院或团委咨询校内报名渠道及学分认定办法。"
 
 
 def validate_profile(value):
@@ -94,7 +94,7 @@ class Experience:
                 if item["kind"] == "contest" and profile["college"]:
                     if profile["college"] in item["categories"]:
                         score += 8
-                        reasons.append("交接指南列于你选择的专业方向；资格仍需核对。")
+                        reasons.append("指南将此赛事列在你选择的专业方向，可优先了解当届报名条件。")
                     elif not any("通用" in c for c in item["categories"]):
                         continue
                 if score == 0:

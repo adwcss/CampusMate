@@ -37,6 +37,13 @@ def load_schools():
                 raise ValueError("学校配置缺少显示字段")
         if value["official_home"] and not official_url(value["official_home"], value):
             raise ValueError("学校官网必须位于配置的HTTPS官方域名")
+        if "official_map" in value and not official_url(value["official_map"], value):
+            raise ValueError("官网地图必须位于本校HTTPS官方域名")
+        pages = value.get("notice_pages", [])
+        if not isinstance(pages, list) or len(pages) > 5 or any(not official_url(page, value) for page in pages):
+            raise ValueError("公告栏目必须位于本校HTTPS官方域名")
+        if identity != DEFAULT_SCHOOL and any(field in value for field in ("map_image", "map_original")):
+            raise ValueError("新接入学校使用本校地点配置生成示意地图")
         result[identity] = value
     if DEFAULT_SCHOOL not in result:
         raise ValueError("缺少默认学校配置")

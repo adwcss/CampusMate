@@ -62,7 +62,7 @@ class Application:
             return self.contexts[school_id]
 
     def stats(self):
-        return {"school_id": self.school_id, "school": self.school, "search_enabled": self.answerer.search.enabled(), "version": __version__, "document_count": len({c["source"] for c in self.retriever.chunks}), "chunk_count": len(self.retriever.chunks),
+        return {"school_id": self.school_id, "school": self.school, "search_provider": self.settings.search_provider, "search_enabled": self.answerer.search.enabled(), "version": __version__, "document_count": len({c["source"] for c in self.retriever.chunks}), "chunk_count": len(self.retriever.chunks),
                 "updated_at": "2026-10-14", "answer_mode": "remote_llm" if self.settings.remote_enabled() else "local_evidence",
                 "remote_enabled": self.settings.remote_enabled(), "received_key_blocked": self.settings.key_blocked(), "remote_calls": self.answerer.remote_calls}
 
@@ -120,7 +120,7 @@ def handler_for(application):
             self.school_id = values[0] if values else DEFAULT_SCHOOL
             app = root_application.for_school(self.school_id)
             path = urlsplit(self.path).path
-            if not app.school.get("legacy_content") and (path.startswith(("/api/orientation", "/api/preparation", "/api/saved", "/api/profile", "/api/recommend")) or path in {"/api/dorm", "/api/contest", "/api/club", "/api/studentorg", "/api/explore", "/api/tasks/from-choice", "/school-map.jpg", "/campus-map.png"} or path.startswith(("/dorm-images/", "/club-images/", "/union-images/"))):
+            if not app.school.get("legacy_content") and (path.startswith(("/api/orientation", "/api/preparation", "/api/saved", "/api/profile", "/api/recommend")) or path in {"/api/dorm", "/api/contest", "/api/club", "/api/studentorg", "/api/explore", "/api/tasks/from-choice", "/school-map.jpg", "/campus-map.png"} or path.startswith(("/dorm-images/", "/club-images/", "/union-images/", "/campus3d/"))):
                 raise ValueError("此学校尚未接入该模块资料。")
             if payload is not None and path in {"/api/tasks/import", "/api/tasks/import-preview", "/api/preparation/preview"}:
                 self.check_backup(payload.get("backup"))
@@ -134,13 +134,18 @@ def handler_for(application):
 
         def check_host(self):
             port = self.server.server_port
-            return self.headers.get("Host", "") in {f"localhost:{port}", f"127.0.0.1:{port}"}
+            allowed = {f"localhost:{port}", f"127.0.0.1:{port}"}
+            if root_application.settings.public_host:
+                allowed.add(root_application.settings.public_host)
+            return self.headers.get("Host", "").lower() in allowed
 
         def body(self):
             if not self.check_host():
                 raise ValueError("请求来源不受支持。")
             origin = self.headers.get("Origin")
-            if origin and origin not in {f"http://127.0.0.1:{self.server.server_port}", f"http://localhost:{self.server.server_port}"}:
+            host = self.headers["Host"].lower()
+            scheme = "https" if host == root_application.settings.public_host else "http"
+            if origin and origin != f"{scheme}://{host}":
                 raise PermissionError("请求来源不受支持。")
             if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                 raise ValueError("需要JSON请求。")
@@ -177,7 +182,7 @@ def handler_for(application):
                 if url.path == "/api/stats":
                     return self.json(application.stats())
                 if url.path == "/api/catalog":
-                    return self.json({"faqs": FAQS if application.school.get("legacy_content") else [{"category": "待补充资料", "questions": ["报到需要准备什么？"]}], "places": application.places, "route": ROUTE if application.school.get("legacy_content") else [], "tasks": TASKS if application.school.get("legacy_content") else []})
+                    return self.json({"faqs": FAQS if application.school.get("legacy_content") else [{"category": "本校信息", "questions": ["学校地址和校区在哪里？", "报到需要准备什么？"]}], "places": application.places, "route": ROUTE if application.school.get("legacy_content") else [], "tasks": TASKS if application.school.get("legacy_content") else []})
                 if url.path == "/api/places":
                     return self.json({"places": application.places})
                 if url.path == "/api/explore":
@@ -234,7 +239,7 @@ def handler_for(application):
                 if url.path == "/api/sources":
                     documents = {}
                     for c in application.retriever.chunks:
-                        documents.setdefault(c["source"], {"school_id": application.school_id, "name": c["source"], "source_type": c["source_type"], "urls": c["urls"], "effective_year": c["effective_year"], "caveat": c["caveat"], "verified": c["verified"], "published_at": c.get("published_at"), "collected_at": c["collected_at"], "chunks": []})["chunks"].append({"id": c["id"], "school_id": application.school_id, "section": c["section"], "text": c["text"]})
+                        documents.setdefault(c["source"], {"school_id": application.school_id, "name": c["source"], "source_type": c["source_type"], "urls": c["urls"], "effective_year": c["effective_year"], "caveat": c["caveat"], "verified": c["verified"], "published_at": c.get("published_at"), "collected_at": c["collected_at"], "trust_label": c.get("trust_label"), "document_kind": c.get("document_kind"), "chunks": []})["chunks"].append({"id": c["id"], "school_id": application.school_id, "section": c["section"], "text": c["text"]})
                     return self.json({"documents": list(documents.values())})
                 if url.path == "/favicon.ico":
                     self.respond_headers(204, "image/x-icon", 0)
@@ -250,6 +255,8 @@ def handler_for(application):
                 for name, mime in {"index.html": "text/html", "campus.css": "text/css", "campus.js": "text/javascript", "three.min.js": "text/javascript", "places.json": "application/json"}.items():
                     files["/campus3d/" + name] = (ROOT / "frontend/campus3d" / name, mime + "; charset=utf-8")
                 files["/campus3d/"] = (ROOT / "frontend/campus3d/index.html", "text/html; charset=utf-8")
+                files["/dorm-room.js"] = (ROOT / "frontend/dorm-room.js", "text/javascript; charset=utf-8")
+                files["/dorm-room.css"] = (ROOT / "frontend/dorm-room.css", "text/css; charset=utf-8")
                 files["/orientation.js"] = (ROOT / "frontend/orientation.js", "text/javascript; charset=utf-8")
                 files["/preparation.js"] = (ROOT / "frontend/preparation.js", "text/javascript; charset=utf-8")
                 files["/preparation.css"] = (ROOT / "frontend/preparation.css", "text/css; charset=utf-8")
@@ -436,8 +443,12 @@ def handler_for(application):
 
 
 def serve(port=8765):
+    class CampusMateServer(ThreadingHTTPServer):
+        # A fresh browser tab can request dozens of assets through the tunnel at once.
+        request_queue_size = 128
+
     app = Application()
-    server = ThreadingHTTPServer(("127.0.0.1", port), handler_for(app))
+    server = CampusMateServer(("127.0.0.1", port), handler_for(app))
     server.daemon_threads = True
     print(f"新生指南已启动：http://127.0.0.1:{port}/", flush=True)
     print("默认使用本地资料模式；外部模型请求：关闭" if not app.settings.remote_enabled() else "外部模型已显式启用，可能产生费用", flush=True)

@@ -21,6 +21,7 @@
   <script src="/orientation.js" defer></script>
   <script src="/preparation.js" defer></script>
   <script src="/app.js" defer></script>
+  <link rel="stylesheet" href="/dorm-room.css">
 </head>
 <body>
 <!-- Decorative motifs derived from the supplied character: waves, birds and red bridge. -->
@@ -46,7 +47,7 @@
 </div>
 <template id="campus-heading-template"><svg class="campus-heading-art" viewBox="0 0 800 300" aria-hidden="true" focusable="false"><use href="#campus-waves"/><use href="#campus-bridge" x="540" y="15" width="180" height="230"/><use class="campus-birds" href="#campus-birds" x="325" y="40" width="260" height="100"/></svg><img class="campus-heading-figure" width="1122" height="1402" alt="" aria-hidden="true" decoding="async" hidden></template>
 <a class="skip" href="#main">跳到主要内容</a>
-<aside class="sidebar">
+<aside class="sidebar" id="tool-sidebar">
   <a class="brand" href="/?view=arrival" aria-label="初到新生指南首页"><span class="brand-icon" aria-hidden="true">初</span><span><strong>初到</strong><small>河职大新生指南</small></span></a>
   <nav aria-label="主要导航">
     <a href="/?view=journey" data-view="journey"><span aria-hidden="true">✦</span>校园探索长卷</a>
@@ -66,6 +67,7 @@
   <div class="sidebar-note"><span class="status-dot" aria-hidden="true"></span><strong id="mode-label">正在连接资料库…</strong><p id="mode-detail">回答会附上资料与适用范围。</p></div>
   <div class="sidebar-footer"><button id="theme-toggle" class="text-button" aria-haspopup="dialog" aria-controls="appearance-dialog">外观与背景</button><a id="school-home" href="https://www.hnvust.cn/" target="_blank" rel="noopener noreferrer">学校官网</a><small>独立开发作品，非学校官方服务</small></div>
 </aside>
+<div class="sidebar-resizer" role="separator" aria-label="调整左侧菜单宽度" aria-orientation="vertical" aria-controls="tool-sidebar" tabindex="0"></div>
 <div class="workspace">
   <header class="topbar"><label class="school-picker" for="school-select">当前学校<select id="school-select" aria-label="选择学校"><option value="hnvust">河南科技职业大学</option></select></label><div><span id="knowledge-meta">正在读取资料…</span><button class="text-button" id="appearance-open" aria-haspopup="dialog" aria-controls="appearance-dialog">外观</button><button class="text-button" id="export">导出我的记录</button></div></header>
   <p id="school-status" class="school-status" role="status">正在读取学校配置…</p>
@@ -124,7 +126,7 @@
         <div class="chat-main">
           <section class="question-starters" aria-label="常见问题"><div class="section-label"><h2>大家都在问</h2><span>选择一个问题开始</span></div><div id="faq-tabs" class="segmented"></div><div id="faq-questions" class="faq-grid"></div></section>
           <section id="conversation" class="conversation" aria-label="对话记录"><div class="welcome" id="chat-welcome"><span class="welcome-symbol" aria-hidden="true">问</span><h2>你的第一站，资料先行。</h2><p>可以直接提问，也可以从上面的常见问题开始。<br>回答里的编号对应资料原文，历史安排会特别提醒。</p></div></section>
-          <div class="retrieval-choice"><label for="retrieval-mode">资料检索</label><select id="retrieval-mode"><option value="local">本地知识库</option><option value="enhanced">联网增强（本地＋官网公告）</option></select><small>默认免费读取学校公开公告标题，问题在本机匹配。请打开原文查看具体要求。</small></div><form id="question-form" class="composer"><label for="question">想了解什么？</label><div class="input-row"><textarea id="question" name="question" rows="2" maxlength="500" autocomplete="off" placeholder="例如：报到要带什么材料？…" required></textarea><button id="send" class="primary" type="submit">发送问题 <span aria-hidden="true">↑</span></button></div><div class="composer-foot"><span>Enter 发送，Shift + Enter 换行</span><span id="request-status" role="status" aria-live="polite">每次回答都有资料可查</span></div></form>
+          <div class="retrieval-choice"><label for="retrieval-mode">资料检索</label><select id="retrieval-mode"><option value="local">本地知识库</option><option value="enhanced">联网增强</option></select><small id="retrieval-hint">正在读取本校检索设置…</small></div><form id="question-form" class="composer"><label for="question">想了解什么？</label><div class="input-row"><textarea id="question" name="question" rows="2" maxlength="500" autocomplete="off" placeholder="例如：报到要带什么材料？…" required></textarea><button id="send" class="primary" type="submit">发送问题 <span aria-hidden="true">↑</span></button></div><div class="composer-foot"><span>Enter 发送，Shift + Enter 换行</span><span id="request-status" role="status" aria-live="polite">每次回答都有资料可查</span></div></form>
         </div>
         <aside class="arrival-aside"><a class="inline-link" href="/?view=plan">规划宿舍、社团与竞赛</a><div class="arrival-title"><span aria-hidden="true">⌂</span><h2>把报到这件事理顺</h2></div><p>具体日期与办理位置，请核对当年官方通知。</p><ol id="arrival-route" class="route-list"></ol><div class="mini-checklist"><h3>出发前，准备好了多少？</h3><div class="progress-track"><span id="mini-progress"></span></div><p id="mini-progress-label">正在读取清单…</p><a class="inline-link" href="/?view=checklist">打开我的报到清单</a></div><div class="contact-note"><h3>需要人工确认？</h3><p>学校官网咨询电话</p><a href="tel:03948511111">0394-8511111</a><a href="tel:03948385111">0394-8385111</a><small>来源：学校官网首页</small></div></aside>
       </div>
@@ -188,9 +190,23 @@
         <div>
           <div class="map-toolbar"><h2 id="dorm-bed-room-name">宿舍床位</h2></div>
           <div id="dorm-bed-tip" class="notice"></div>
-          <div class="map-viewport"><div class="map-canvas" id="dorm-bed-canvas"><img src="/dorm-images/liuren-plan.jpg" alt="宿舍床位示意图" id="dorm-bed-image"><div id="dorm-bed-pins"></div></div></div>
+          <div class="dorm-room-controls" aria-label="宿舍视角">
+            <button id="dorm-room-mode" class="secondary" type="button" aria-pressed="false">查看平面图</button>
+            <button data-dorm-camera="left" class="secondary" type="button" aria-label="向左旋转">↶</button>
+            <button data-dorm-camera="right" class="secondary" type="button" aria-label="向右旋转">↷</button>
+            <button data-dorm-camera="in" class="secondary" type="button" aria-label="放大">＋</button>
+            <button data-dorm-camera="out" class="secondary" type="button" aria-label="缩小">−</button>
+            <button data-dorm-camera="top" class="secondary" type="button" aria-pressed="false">俯视</button>
+            <button data-dorm-camera="reset" class="secondary" type="button">复位</button>
+          </div>
+          <div id="dorm-room-stage" class="dorm-room-stage" hidden></div>
+          <p id="dorm-room-caption" class="dorm-room-caption" role="status"></p>
+          <details class="dorm-room-references"><summary>对照宿舍总览实拍</summary><div id="dorm-room-photos"></div><a href="/?view=dorm&school_id=hnvust">查看宿舍总览（含公共洗衣房）</a></details>
+          <div class="map-viewport" id="dorm-room-plan"><div class="map-canvas" id="dorm-bed-canvas"><img src="/dorm-images/liuren-plan.jpg" alt="宿舍床位示意图" id="dorm-bed-image"><div id="dorm-bed-pins"></div></div></div>
+          <div id="dorm-room-list" class="dorm-room-controls" aria-label="按编号选择床位"></div>
         </div>
         <aside class="map-detail">
+          <div class="dorm-room-guide"><img src="/assets/cover-portrait-v3.png" alt="封面校园向导"><span>选一个床号，看看靠门、靠窗和中间位的差别。</span></div>
           <h2>我的理想床位</h2>
           <div id="ideal-beds" class="ideal-beds"></div>
         </aside>

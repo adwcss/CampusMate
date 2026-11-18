@@ -1,11 +1,47 @@
 "use strict";
+{
+  const divider = document.querySelector(".sidebar-resizer");
+  const sidebar = document.getElementById("tool-sidebar");
+  const width = () => Math.round(sidebar.getBoundingClientRect().width);
+  const maxWidth = () => Math.floor(Math.min(380, innerWidth * .4));
+  const updateValue = () => {
+    divider.setAttribute("aria-valuemax", maxWidth());
+    divider.setAttribute("aria-valuenow", width());
+  };
+  const resize = value => {
+    document.body.style.setProperty("--sidebar-width", `${Math.min(maxWidth(), Math.max(180, value))}px`);
+    updateValue();
+  };
+  let drag = null;
+  divider.setAttribute("aria-valuemin", 180);
+  divider.addEventListener("focus", updateValue);
+  divider.addEventListener("pointerdown", event => {
+    if (event.button !== 0 || drag) return;
+    drag = {id:event.pointerId, origin:event.clientX, width:width()};
+    divider.setPointerCapture(event.pointerId);
+    divider.dataset.dragging = "";
+  });
+  divider.addEventListener("pointermove", event => {
+    if (drag?.id === event.pointerId) resize(drag.width + event.clientX - drag.origin);
+  });
+  divider.addEventListener("lostpointercapture", () => {
+    drag = null;
+    delete divider.dataset.dragging;
+  });
+  divider.addEventListener("keydown", event => {
+    const adjustment = {ArrowLeft:-16, ArrowRight:16}[event.key];
+    if (!adjustment) return;
+    event.preventDefault();
+    resize(width() + adjustment);
+  });
+}
 const $ = (selector) => document.querySelector(selector);
-const LABELS = {official_verified: "已核实官方文件", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考", web_snippet: "官方域名搜索摘要 · 正文待核验", official_notice_link: "学校官网公告入口"};
+const LABELS = {official_verified: "已核实官方文件", inherited_reference: "交接资料待核对", third_party: "第三方参考", map_reference: "交接地图参考", web_snippet: "官方域名搜索摘要 · 正文待核验", official_notice_link: "学校官网公告入口", official_article: "学校官网正文已读取"};
 const state = {catalog: null, sources: [], checked: {}, messages: [], busy: false, faq: 0, zoom: 1, mapCategory: "", mapQuery: "", session: "", view: "chat", explore: null, saved: [], profile: null, recommendations: null, recommendKind: "bed", compare: [], dorm: null, dormRoom: null, idealBeds: [], contest: null, contestCat: "", contestLevel: "", contestKw: "", club: null, clubCat: "", clubKw: "", union: null, unionCat: "", unionKw: ""};
+const sessionKey = selectedSchoolId === "hnvust" ? "freshman-session-v1" : `campusmate-session-v1:${selectedSchoolId}`;
 try {
-  state.session = localStorage.getItem("freshman-session-v1") || crypto.randomUUID().replaceAll("-", "");
-  localStorage.setItem("freshman-session-v1", state.session);
-
+  state.session = localStorage.getItem(sessionKey) || crypto.randomUUID().replaceAll("-", "");
+  localStorage.setItem(sessionKey, state.session);
 } catch {
   state.session = crypto.randomUUID().replaceAll("-", "");
 }
@@ -110,9 +146,10 @@ function citations(sources) {
   sources.forEach((source, index) => {
     const details = element("details", "citation");
     const summary = element("summary", "", `【${index + 1}】${source.source} · ${source.section}`);
-    details.append(summary, element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, LABELS[source.source_type]));
+    details.append(summary, element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, (source.trust_label || LABELS[source.source_type])));
     details.append(element("p", "", source.caveat));
-    if (source.published_at || source.evidence_origin === "search_api") details.append(element("p", "", `发布日期：${source.published_at || "来源未提供，待核实"}；检索时间：${source.retrieved_at || source.collected_at}`));
+    if (source.published_at || source.retrieved_at) details.append(element("p", "", `发布日期：${source.published_at || "待核实"}`));
+    if (source.retrieved_at) details.append(element("p", "", `检索时间：${source.retrieved_at}`));
     if (source.effective_year) details.append(element("p", "", `适用参考年份：${source.effective_year}；采集日期：${source.collected_at}`));
     details.append(element("pre", "", source.text));
     for (const raw of source.urls || []) { const link = safeLink(raw); if (link) details.append(link); }
@@ -138,7 +175,15 @@ function answerArrivalForm(message) {
   }
   const submit = element("button", "primary", "加入我的报到清单");
   submit.type = "submit";
-  const open = button("查看报到清单", () => changeView("checklist"));
+  const open = button("查看报到清单", () => {
+    changeView("checklist");
+    const heading = $("#personal-arrival-list:not([hidden]) h2");
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus();
+      heading.scrollIntoView({block: "center"});
+    }
+  });
   form.append(choices, submit, open, status);
   form.addEventListener("submit", async event => {
     event.preventDefault();
@@ -275,18 +320,71 @@ $("#question").addEventListener("keydown", event => {
   if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); $("#question-form").requestSubmit(); }
 });
 
+let arrivalStatusFilter = "all";
+const arrivalStatuses = {todo: "待办", doing: "进行中", done: "已完成"};
+
 function renderPersonalArrival() {
   const section = $("#personal-arrival-list");
   const tasks = personalTasks.filter(task => state.arrivalTaskIds?.includes(task.id) && task.status !== "archived");
   section.hidden = !tasks.length;
+  const totals = {all: tasks.length, todo: 0, doing: 0, done: 0};
+  for (const task of tasks) totals[task.status]++;
+  const filters = element("div", "arrival-status-filters");
+  filters.setAttribute("role", "group");
+  filters.setAttribute("aria-label", "按准备进度筛选");
+  for (const [status, label] of Object.entries({all: "全部", ...arrivalStatuses})) {
+    const filter = button(`${label} ${totals[status]}`, () => {
+      arrivalStatusFilter = status;
+      renderPersonalArrival();
+      section.querySelector('[aria-pressed="true"]')?.focus();
+    });
+    filter.setAttribute("aria-pressed", String(arrivalStatusFilter === status));
+    filters.append(filter);
+  }
   const list = element("ul");
-  for (const task of tasks) {
-    const status = {todo: "待办", doing: "进行中", done: "已完成"}[task.status];
+  for (const task of tasks.filter(task => arrivalStatusFilter === "all" || task.status === arrivalStatusFilter)) {
     const item = element("li");
-    item.append(element("span", "badge", status), document.createTextNode(` ${task.title}`));
+    const completed = task.status === "done";
+    const update = async status => {
+      const controls = section.querySelectorAll("button");
+      controls.forEach(control => { control.disabled = true; });
+      try {
+        const result = await mutate("/api/tasks", {task: {...task, status}});
+        personalTasks = result.tasks;
+        renderPersonalArrival();
+        (section.querySelector(`[data-arrival-task="${task.id}"]`) || section.querySelector('[aria-pressed="true"]'))?.focus();
+        toast(`已更新为${arrivalStatuses[status]}`);
+      } catch (error) {
+        toast(error.message);
+      } finally {
+        controls.forEach(control => { control.disabled = false; });
+      }
+    };
+    const toggle = button(completed ? "标为待办" : "标为完成", () => update(completed ? "todo" : "done"), "secondary arrival-task-toggle");
+    toggle.dataset.arrivalTask = task.id;
+    toggle.setAttribute("aria-label", `${toggle.textContent}：${task.title}`);
+    const steps = element("ol", "arrival-task-steps");
+    steps.setAttribute("aria-label", "事项进度");
+    for (const [status, label] of Object.entries(arrivalStatuses)) {
+      const step = element("li", "", label);
+      if (status === task.status) step.setAttribute("aria-current", "step");
+      steps.append(step);
+    }
+    const actions = element("div", "arrival-task-actions");
+    if (task.status === "todo") {
+      const start = button("开始准备", () => update("doing"));
+      start.setAttribute("aria-label", `开始准备：${task.title}`);
+      actions.append(start);
+    }
+    actions.append(toggle);
+    item.append(element("strong", "", task.title), steps, actions);
     list.append(item);
   }
-  section.replaceChildren(element("h2", "", "我的出发准备事项"), list, button("在日程与任务中管理进度", () => changeView("tasks")));
+  const progress = element("p", "", `个人准备已完成 ${totals.done} / ${tasks.length} 项`);
+  progress.setAttribute("role", "status");
+  section.replaceChildren(element("h2", "", "我的出发准备事项"), progress, filters,
+    list.childElementCount ? list : element("p", "", "当前筛选下没有准备事项。"),
+    button("在日程与任务中管理进度", () => changeView("tasks")));
 }
 function updateProgress() {
   const total = state.catalog.tasks.length;
@@ -452,18 +550,38 @@ function openDormBeds(roomType) {
   renderDormBeds(roomType);
   changeView("dorm-bed");
 }
+let dormViewerLoad;
 function renderDormBeds(roomType) {
   const room = state.dorm.rooms[roomType];
   $("#dorm-bed-title").textContent = `${room.name} · 床位选择`;
   $("#dorm-bed-room-name").textContent = `${room.name} · ${room.layout}`;
-  $("#dorm-bed-subtitle").textContent = "序号标在俯视图的床铺位上（下方书桌不标号），点击序号查看优缺点。";
+  $("#dorm-bed-subtitle").textContent = "点选立体床铺或床号查看详情，加入「我的理想床位」对比。";
   $("#dorm-bed-tip").textContent = room.tip;
+  const photos = $("#dorm-room-photos");
+  photos.replaceChildren();
+  const references = roomType === "siren"
+    ? [["四人寝床位", room.env_img], ["四人寝洗手台", "/dorm-images/siren-sink.jpg"], ["四人寝卫生间", "/dorm-images/siren-toilet.jpg"]]
+    : [["六人寝床位", room.env_img], ["六人寝卫浴与洗手台", "/dorm-images/liuren-bath.jpg"]];
+  for (const [name, src] of references) {
+    const photo = element("a");
+    photo.href = src;
+    photo.target = "_blank";
+    photo.rel = "noopener";
+    const thumbnail = element("img");
+    thumbnail.src = src;
+    thumbnail.alt = name;
+    thumbnail.loading = "lazy";
+    photo.append(thumbnail, element("span", "", name));
+    photos.append(photo);
+  }
   const img = $("#dorm-bed-image");
   [img.width,img.height] = roomType === "siren" ? [300,754] : [675,1366];
   img.src = room.select_img;
   img.alt = `${room.name}俯视图`;
   const pins = $("#dorm-bed-pins");
   pins.replaceChildren();
+  const list = $("#dorm-room-list");
+  list.replaceChildren();
   room.beds.forEach(bed => {
     const pin = button(bed.id, () => showBedDialog(roomType, bed), "bed-pin");
     pin.style.left = `${bed.x}%`;
@@ -474,6 +592,20 @@ function renderDormBeds(roomType) {
     pin.setAttribute("aria-label", `查看${bed.name}详情`);
     if (isIdealBed(roomType, bed.id)) pin.classList.add("ideal");
     pins.append(pin);
+    list.append(button(bed.name, () => showBedDialog(roomType, bed), "secondary"));
+  });
+  dormViewerLoad ??= ["/campus3d/three.min.js", "/dorm-room.js"].reduce((ready, src) => ready.then(() =>
+    new Promise((resolve, reject) => {
+      const script = element("script");
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.append(script);
+    })), Promise.resolve());
+  dormViewerLoad.then(() => {
+    if (state.dormRoom === roomType) window.DormRoom.show(roomType, room.beds, bed => showBedDialog(roomType, bed));
+  }).catch(() => {
+    $("#dorm-room-caption").textContent = "可用平面图或床号列表查看床位。";
   });
   renderIdealBeds();
 }
@@ -612,8 +744,10 @@ function renderSources(filter = "") {
   for (const source of documents) {
     const doc = element("details", "source-document");
     const summary = element("summary", "", source.name);
-    summary.append(element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, LABELS[source.source_type]));
+    summary.append(element("span", `badge ${source.verified ? "verified" : source.source_type === "third_party" ? "caution" : ""}`, (source.trust_label || LABELS[source.source_type])));
     doc.append(summary, element("p", "", source.caveat));
+    if (source.published_at) doc.append(element("p", "", `发布日期：${source.published_at}`));
+    if (source.effective_year) doc.append(element("p", "", `适用年份：${source.effective_year} · 采集：${source.collected_at}`));
     for (const raw of source.urls) { const link = safeLink(raw); if (link) doc.append(link); }
     for (const chunk of source.chunks) {
       const section = element("div", "source-chunk");
@@ -688,6 +822,7 @@ async function boot() {
     $("#knowledge-meta").textContent = `${stats.remote_enabled ? "AI 资料" : "本地资料"} · ${stats.document_count} 份 · ${stats.chunk_count} 条`;
     $("#mode-label").textContent = stats.remote_enabled ? "AI 资料模式" : "本地资料模式";
     $("#mode-detail").textContent = stats.remote_enabled ? "已显式启用外部模型，可能产生费用。" : "无需 API 额度，所有资料在本机检索。";
+    renderSearchMode(stats);
     renderFaq(); renderMessages(); renderTasks(); renderPlaces(); renderDormEnv(); renderContest(); renderClub(); renderUnion(); renderSources(); setZoom(1);
     if (state.view === "dorm-bed") {
       const roomType = ["siren", "liuren"].includes(params.get("room")) ? params.get("room") : "siren";

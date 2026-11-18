@@ -4,7 +4,7 @@
  const root=document.querySelector('#view-journey');
  root.innerHTML=`
  <div class="journey-space" aria-hidden="true"><svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"><g fill="none" stroke="currentColor" stroke-width=".7"><path d="M0 180L290 300 140 640 540 790 870 590 1170 810 1600 650M290 300L610 130 870 590 1200 190 1600 340M140 640L610 130M540 790L1200 190M0 950L1600 60M0 40L1600 950M0 500H1600M800 0V1000"/><ellipse cx="800" cy="500" rx="710" ry="290"/><ellipse cx="800" cy="500" rx="510" ry="450"/></g><g fill="currentColor">${[[290,300],[140,640],[540,790],[870,590],[1170,810],[610,130],[1200,190]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="3"/>`).join('')}</g></svg><span class="space-caption">EVERY NEW BEGINNING<br>IS A NEW UNIVERSE.</span></div>
- <header class="journey-nav"><a href="/?view=journey" class="journey-brand">初到<span>HNVUST / FIRST CHAPTER</span></a><nav aria-label="长卷章节"><button data-chapter="begin">序章</button><button data-chapter="prepare">准备</button><button data-chapter="campus">校园</button><button data-chapter="living">生活</button><button data-chapter="future">成长</button></nav><div class="journey-nav-actions"><button id="journey-perspective" aria-pressed="true">透视漫游 ↗</button><a href="/?view=chat" class="journey-nav-cta">进入工具台 ↗</a></div></header>
+ <header class="journey-nav"><a href="/?view=journey" class="journey-brand">初到<span>HNVUST / FIRST CHAPTER</span></a><nav aria-label="长卷章节"><button data-chapter="begin">序章</button><button data-chapter="prepare">准备</button><button data-chapter="campus">校园</button><button data-chapter="living">生活</button><button data-chapter="future">成长</button></nav><div class="journey-nav-actions"><a href="/?view=chat" class="journey-nav-cta">进入工具台 ↗</a></div></header>
  <aside class="journey-rail" aria-label="探索进度"><span>YOUR FIRST CHAPTER</span><div class="journey-progress"><i id="journey-progress-fill"></i></div><small id="journey-position">01 / 05</small></aside>
  <div class="journey-viewport"><div class="journey-track">
  <section class="journey-chapter chapter-begin" id="journey-begin" data-number="01"><div class="chapter-meta"><span>河南科技职业大学 / 新生指南</span><span>01 — THE BEGINNING</span></div><div class="journey-hero-copy"><p class="journey-kicker">每一次初到，都值得期待。</p><h1>你的大学，<br>从这里<span>展开。</span></h1><p class="journey-lead">从准备第一件行李，到找到属于自己的方向。<br>和我一起，把陌生的校园变成熟悉的日常。</p><button id="journey-start" class="journey-action" data-chapter="prepare">向下，开启新章节 <span>↓</span></button></div><img class="journey-hero-character" src="/assets/school-mascot.png" alt="蓝白色校园向导向你伸出手"><div class="journey-orbits" aria-hidden="true"><i></i><i></i><i></i><b>✦</b></div><div class="journey-hero-bottom"><span>厚德博学 · 求实创新</span><span>SCROLL TO EXPLORE ↓</span></div></section>
@@ -33,7 +33,6 @@
      <use href="#journey-river-course" class="river-bank"/>
      <use href="#journey-river-course" class="river-current"/>
    </svg>`);
- const river=space.querySelector('.journey-river');
  const rail=root.querySelector('.journey-rail');
  rail.querySelector('span').textContent='溯流而上';
  rail.insertAdjacentHTML('afterbegin','<b class="journey-river-arrow" aria-hidden="true">↑</b>');
@@ -41,7 +40,7 @@
  const waveCanvas=document.createElement('canvas');waveCanvas.className='journey-waves';waveCanvas.setAttribute('aria-hidden','true');root.querySelector('.journey-space').append(waveCanvas);const waveContext=waveCanvas.getContext('2d');let waves=[],waveFrame=0,lastWave=0;
  function sizeWaves(){waveCanvas.width=innerWidth;waveCanvas.height=innerHeight;}sizeWaves();addEventListener('resize',sizeWaves);
  function drawWaves(now){waveFrame=0;if(root.hidden||document.hidden){waves=[];waveContext.clearRect(0,0,waveCanvas.width,waveCanvas.height);return;}waveContext.clearRect(0,0,waveCanvas.width,waveCanvas.height);waves=waves.filter(w=>now-w.born<1200);for(const w of waves){const t=(now-w.born)/1200;waveContext.beginPath();waveContext.ellipse(w.x,w.y,15+t*125,8+t*60,-.2,0,Math.PI*2);waveContext.strokeStyle=`rgba(168,209,238,${(1-t)*.2})`;waveContext.lineWidth=.7;waveContext.stroke();}if(waves.length)waveFrame=requestAnimationFrame(drawWaves);}
- const reduced=matchMedia('(prefers-reduced-motion: reduce)'),track=root.querySelector('.journey-track'),toggle=root.querySelector('#journey-perspective');
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)'),track=root.querySelector('.journey-track');
  const nav=root.querySelector('.journey-nav');
  const progressFill=root.querySelector('#journey-progress-fill'),positionLabel=root.querySelector('#journey-position');
  const chapterButtons=[...nav.querySelectorAll('[data-chapter]')];
@@ -71,21 +70,11 @@
  addEventListener('storage',event=>{
    if(event.key===paletteKey||event.key===null)applyPalette(event.newValue==='warm'?'warm':'night');
  });
- let perspective=true,frame=0,lastTime=0,layout=null,maxScroll=0,loopAt=0,activeChapter=-1;
+ root.classList.add('journey-flat');
+ let frame=0,lastTime=0,layout=null,maxScroll=0,activeChapter=-1;
  const light={x:70,y:24,targetX:70,targetY:24},chapters=[...root.querySelectorAll('.journey-chapter')];
- let drumAngle=0,previousScroll=null,lastScrollAt=-Infinity,chapterTravelUntil=0,wheelTarget=null,riverDistance=0;
  const footer=root.querySelector('.journey-footer');
  chapters.at(-1).append(footer);
- // The visual copy gives the next lap room to enter before the document wraps.
- const loopPreview=document.createElement('div');
- loopPreview.className='journey-loop-preview';
- loopPreview.setAttribute('aria-hidden','true');
- loopPreview.inert=true;
- const firstCopy=chapters[0].cloneNode(true);
- firstCopy.removeAttribute('id');
- firstCopy.querySelectorAll('[id]').forEach(node=>node.removeAttribute('id'));
- loopPreview.append(firstCopy);
- track.append(loopPreview);
  const stops=[
    {id:'prepare',from:'初到',to:'收拾行囊',note:'把期待装进行李'},
    {id:'campus',from:'出发准备',to:'第一次遇见校园',note:'准备就绪，沿着这条路出发'},
@@ -110,22 +99,11 @@
        <span>${id==='begin'?'回到起点 / 01':`下一站 / 0${index+2}`}</span><strong>${to} <span aria-hidden="true">↘</span></strong>
      </button>`;
    chapters[index].after(connector);
-   if(index===0){
-     const copy=connector.cloneNode(true);
-     copy.querySelector('defs path').id='river-lettering-preview';
-     copy.querySelector('textPath').setAttribute('href','#river-lettering-preview');
-     loopPreview.append(copy);
-   }
  });
- // The document scrolls natively. Cache unrotated chapter positions so the
- // animation never has to read layout between writing chapter transforms.
  function measure(){
-   // Read the layout position from the untransformed offset parent. The
-   // projected top of the ribbon changes as the camera tips, even at rest.
    const parent=track.offsetParent;
    const top=parent.getBoundingClientRect().top+scrollY+track.offsetTop;
    maxScroll=Math.max(0,document.documentElement.scrollHeight-innerHeight);
-   loopAt=loopPreview.offsetHeight?top+loopPreview.offsetTop:0;
    return chapters.map(section=>{
      const sectionTop=top+section.offsetTop;
      return {section,top:sectionTop,height:section.offsetHeight};
@@ -138,59 +116,14 @@
  function render(now){
    frame=0;
    if(root.hidden||document.hidden){
-     lastTime=0;previousScroll=null;drumAngle=0;lastScrollAt=-Infinity;chapterTravelUntil=0;wheelTarget=null;
-     setStyle(track,'--drum-tilt','0deg');
+     lastTime=0;
      return;
    }
    layout??=measure();
-   let scroll=scrollY;
+   const scroll=scrollY;
    const height=innerHeight;
    const dt=Math.min(lastTime?now-lastTime:16,64);
    lastTime=now;
-   const rolling=perspective&&!reduced.matches;
-   const restingAngle=rolling?(innerWidth<701?6:9):0;
-   if(!rolling)wheelTarget=null;
-   if(wheelTarget!==null){
-     const remaining=wheelTarget-scroll;
-     const step=Math.min(Math.abs(remaining),Math.max(1,Math.abs(remaining)*(1-Math.exp(-dt/108))));
-     window.scrollTo({top:scroll+Math.sign(remaining)*step,behavior:'instant'});
-     scroll=scrollY;
-     if(Math.abs(wheelTarget-scroll)<=1)wheelTarget=null;
-   }
-   const delta=previousScroll===null?0:scroll-previousScroll;
-   const movement=Math.abs(delta);
-   const distanceToSeam=loopAt-scroll;
-   if(rolling&&loopAt&&scroll>=loopAt){
-     if(wheelTarget!==null)wheelTarget=layout[0].top+(wheelTarget-loopAt);
-     scroll=layout[0].top+(scroll-loopAt);
-     window.scrollTo({top:scroll,behavior:'instant'});
-     scroll=scrollY;
-     if(document.activeElement?.closest('.journey-connector[data-next=begin]')){
-       root.querySelector('#journey-start').focus({preventScroll:true});
-     }
-     drumAngle=restingAngle;lastScrollAt=-Infinity;chapterTravelUntil=0;
-   }
-   previousScroll=scroll;
-   if(movement>.1&&(!rolling||distanceToSeam>0))lastScrollAt=now;
-   const travelling=now<chapterTravelUntil;
-   const scrolling=now-lastScrollAt<220||wheelTarget!==null;
-   // Hold a stable camera through a series of wheel steps. The ribbon glides
-   // under it; the camera only eases in at the start and out after settling.
-   const targetAngle=rolling&&(scrolling||travelling)?(innerWidth<701?29:44):restingAngle;
-   drumAngle+=(targetAngle-drumAngle)*(1-Math.exp(-dt/(targetAngle>drumAngle?82:196)));
-   if(Math.abs(drumAngle-targetAngle)<.08)drumAngle=targetAngle;
-   // Keep the near edge anchored low in the viewport, with all chapters
-   // sharing a single vanishing point instead of separate card rotations.
-   setStyle(track,'--drum-anchor',(scroll-layout[0].top+height*.86).toFixed(1)+'px');
-   // Return to the resting camera at the join so both opening frames match.
-   const seamBlend=rolling&&loopAt?Math.min(1,Math.max(0,distanceToSeam/(height*.55))):1;
-   const projectedAngle=restingAngle+(drumAngle-restingAngle)*seamBlend*seamBlend*(3-2*seamBlend);
-   setStyle(track,'--drum-tilt',projectedAngle.toFixed(2)+'deg');
-   // The paths run bottom to top. Negative dash offset sends the light
-   // upstream; accumulate the actual scroll delta before any loop rebase.
-   if(rolling&&movement>.1)riverDistance=(riverDistance+delta*.62)%160;
-   setStyle(river,'--river-offset',(-riverDistance).toFixed(2)+'px');
-   setStyle(river,'--river-strength',(.55+projectedAngle/110).toFixed(3));
    const lightBlend=1-Math.exp(-dt/85);
    light.x+=(light.targetX-light.x)*lightBlend;
    light.y+=(light.targetY-light.y)*lightBlend;
@@ -198,7 +131,7 @@
    setStyle(root,'--orbit-y',((light.y-40)*.28).toFixed(2)+'px');
    setStyle(root,'--type-shift',((light.x-50)*.024).toFixed(3)+'px');
    setStyle(root,'--orbit-turn',((light.x-50)*.12).toFixed(2)+'deg');
-   const progressEnd=rolling&&loopAt?loopAt:maxScroll;
+   const progressEnd=maxScroll;
    setStyle(progressFill,'transform',`scaleY(${(progressEnd>0?Math.min(1,scroll/progressEnd):0).toFixed(5)})`);
    let chapter=0;
    layout.forEach(({section,top,height:sectionHeight},index)=>{
@@ -207,52 +140,16 @@
        setStyle(section,'--light-x',light.x.toFixed(2)+'%');
        setStyle(section,'--light-y',light.y.toFixed(2)+'%');
      }
-     const approach=Math.max(0,Math.min(1,(top-scroll-height*.35)/(height*.65)));
-     setStyle(section,'--river-rise',(approach*approach*projectedAngle*.7).toFixed(2)+'px');
    });
-   if(rolling&&loopAt<scroll+height){
-     setStyle(firstCopy,'--light-x',light.x.toFixed(2)+'%');
-     setStyle(firstCopy,'--light-y',light.y.toFixed(2)+'%');
-   }
    if(chapter!==activeChapter){
      activeChapter=chapter;
      positionLabel.textContent=chapters[chapter].dataset.number+' / 05';
      chapterButtons.forEach((button,index)=>button.classList.toggle('active',index===chapter));
    }
-   if(wheelTarget!==null||(rolling&&(scrolling||travelling))||drumAngle!==targetAngle||Math.abs(light.targetX-light.x)>.1||Math.abs(light.targetY-light.y)>.1)schedule();
+   if(Math.abs(light.targetX-light.x)>.1||Math.abs(light.targetY-light.y)>.1)schedule();
    else lastTime=0;
  }
  function schedule(){if(!frame)frame=requestAnimationFrame(render)}
- root.addEventListener('wheel',event=>{
-   if(root.hidden||!perspective||reduced.matches||event.defaultPrevented||!event.cancelable||
-     event.ctrlKey||event.shiftKey||Math.abs(event.deltaX)>=Math.abs(event.deltaY)||document.querySelector('dialog[open]'))return;
-   layout??=measure();
-   const delta=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?innerHeight:1);
-   const current=scrollY;
-   const ahead=wheelTarget===null?0:wheelTarget-current;
-   // A reverse wheel gesture takes effect immediately. Bound queued movement
-   // so a burst of wheel ticks cannot keep the user scrolling after they stop.
-   const pending=delta*ahead>0?ahead:0;
-   const offset=Math.max(-innerHeight,Math.min(innerHeight,pending+delta));
-   const target=Math.max(0,Math.min(maxScroll,current+offset));
-   if(target===current&&wheelTarget===null)return;
-   event.preventDefault();
-   wheelTarget=target;
-   schedule();
- },{passive:false});
- root.addEventListener('pointerdown',()=>{wheelTarget=null},{passive:true});
- addEventListener('keydown',()=>{wheelTarget=null});
- function updatePerspective(){
-   const enabled=perspective&&!reduced.matches;
-   root.classList.toggle('journey-flat',!enabled);
-   toggle.setAttribute('aria-pressed',String(enabled));
-   toggle.textContent=enabled?'透视漫游 ↗':'平面阅读 ↗';
-   toggle.disabled=reduced.matches;
-   toggle.title=reduced.matches?'系统已开启减少动态效果':'切换透视漫游与平面阅读';
-   invalidate();
- }
- toggle.onclick=()=>{perspective=!perspective;updatePerspective()};
- updatePerspective();
  root.addEventListener('pointermove',e=>{if(reduced.matches||e.pointerType==='touch')return;light.targetX=Math.max(10,Math.min(90,e.clientX/innerWidth*100));light.targetY=Math.max(8,Math.min(80,e.clientY/innerHeight*100));cursor.style.setProperty('--cursor-x',e.clientX+'px');cursor.style.setProperty('--cursor-y',e.clientY+'px');cursor.classList.add('shown');cursor.classList.toggle('over-action',Boolean(e.target.closest('a,button')));const now=performance.now();if(now-lastWave>95){lastWave=now;waves.push({x:e.clientX,y:e.clientY,born:now});if(waves.length>12)waves.shift();if(!waveFrame)waveFrame=requestAnimationFrame(drawWaves);}schedule()},{passive:true});
  root.addEventListener('pointerleave',()=>{light.targetX=70;light.targetY=24;cursor.classList.remove('shown');schedule()});
  if('IntersectionObserver' in window){
@@ -265,18 +162,10 @@
    root.classList.add('journey-enhanced');
  }
  root.querySelectorAll('[data-chapter]').forEach(button=>{
-   if(loopPreview.contains(button))return;
    button.onclick=()=>{
-     wheelTarget=null;
      const index=chapters.findIndex(section=>section.id==='journey-'+button.dataset.chapter);
      const target=(layout??=measure())[index];
-     const loopLink=button.closest('.journey-connector[data-next=begin]');
-     const useJoin=loopLink&&perspective&&!reduced.matches&&loopAt;
-     const top=index===0?(useJoin?loopAt:0):target.top-nav.offsetHeight-16;
-     if(perspective&&!reduced.matches&&Math.abs(top-scrollY)>80){
-       chapterTravelUntil=performance.now()+390;
-       schedule();
-     }
+     const top=index===0?0:target.top-nav.offsetHeight-16;
      window.scrollTo({top:Math.max(0,top),behavior:reduced.matches?'instant':'smooth'});
    };
  });
@@ -287,7 +176,7 @@
  addEventListener('scroll',schedule,{passive:true});
  addEventListener('resize',invalidate);
  document.addEventListener('visibilitychange',schedule);
- reduced.addEventListener('change',updatePerspective);
+ reduced.addEventListener('change',invalidate);
  schedule();
 })();
 
@@ -304,20 +193,22 @@ window.CampusMotion=(()=>{
    tag.textContent=label;
    title.before(tag);
  }
- let animation=null,active=null,frame=0,rotation=0,goal=0,last=0;
- function roll(now){frame=0;if(!active||reduced.matches||document.hidden)return;const blend=1-Math.exp(-Math.min(last?now-last:16,64)/120);last=now;rotation+=(goal-rotation)*blend;if(Math.abs(goal)<.01&&Math.abs(rotation)<.025)rotation=0;active.style.setProperty('--sub-roll',rotation.toFixed(3)+'deg');if(Math.abs(rotation-goal)>.02)frame=requestAnimationFrame(roll)}
- function enter(view,animate){animation?.cancel();animation=null;cancelAnimationFrame(frame);frame=0;if(active)active.style.removeProperty('--sub-roll');rotation=goal=0;last=0;
-   const enabled=view!=='journey'&&Boolean(themes[view]);document.body.classList.toggle('campus-subpage',enabled);document.body.dataset.campusView=view;active=enabled?document.querySelector('#view-'+view):null;
-   if(!active)return;const [accent,tint]=themes[view];document.body.style.setProperty('--sub-accent',accent);document.body.style.setProperty('--sub-tint',tint);
-   active.style.setProperty('--sub-roll','0deg');
-   if(animate&&!reduced.matches){animation=active.animate([{opacity:.3,transform:'perspective(1600px) translateY(65px) rotateX(-12deg) scale(.97)',filter:'brightness(.85)'},{opacity:1,transform:'perspective(1600px) translateY(0) rotateX(0deg) scale(1)',filter:'brightness(1)'}],{duration:850,easing:'cubic-bezier(.16,1,.3,1)'});animation.finished.catch(()=>{});}
+ let animation=null;
+ function enter(view,animate){
+   animation?.cancel();
+   animation=null;
+   const theme=themes[view];
+   document.body.classList.toggle('campus-subpage',Boolean(theme));
+   document.body.dataset.campusView=view;
+   if(!theme)return;
+   const [accent,tint]=theme;
+   document.body.style.setProperty('--sub-accent',accent);
+   document.body.style.setProperty('--sub-tint',tint);
+   const panel=document.querySelector('#view-'+view);
+   if(panel&&animate&&!reduced.matches){
+     animation=panel.animate([{opacity:.75},{opacity:1}],{duration:180,easing:'ease-out'});
+   }
  }
- let previousScroll=scrollY,timeout;
- addEventListener('scroll',()=>{const delta=scrollY-previousScroll;previousScroll=scrollY;if(!active||reduced.matches)return;
-   // Keep map gestures and form editing stable; only gently roll the page while reading.
-   if(document.activeElement?.matches('input,textarea,select')||document.body.dataset.campusView==='map')return;
-   goal=Math.max(-2.4,Math.min(2.4,-delta*.035));if(!frame)frame=requestAnimationFrame(roll);clearTimeout(timeout);timeout=setTimeout(()=>{goal=0;if(!frame)frame=requestAnimationFrame(roll)},110);
- },{passive:true});
- reduced.addEventListener('change',()=>{if(reduced.matches){animation?.cancel();cancelAnimationFrame(frame);frame=0;if(active)active.style.setProperty('--sub-roll','0deg')}});
+ reduced.addEventListener('change',()=>{if(reduced.matches)animation?.cancel()});
  return{enter};
 })();

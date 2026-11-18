@@ -5,13 +5,14 @@
       "title": "河南科技职业大学2026年招生章程",
       "url": "https://www.hnvust.cn/info/1036/3851.htm",
       "published_at": "2026-05-18",
-      "verified_at": "2026-11-01",
+      "verified_at": "2026-11-14",
       "downloaded_at": null,
-      "file": null,
-      "sha256": null,
+      "file": "admissions-2026.txt",
+      "sha256": "ea1edcc86168caa1ba75ac7d0d64d4aedfb8dcc67b0feeace00a9d7d7927bbeb",
       "effective_year": 2026,
-      "status": "verified_url_pending_download",
-      "caveat": "官网网页已核实；下载被当前环境网络权限及自动审批规则阻断。招生章程不是新生报到须知。"
+      "status": "verified_summary",
+      "document_kind": "admissions_charter",
+      "caveat": "依据学校官网正文整理。适用于 2026 年本、专科招生；报到安排以本届入学须知为准。"
     },
     {
       "title": "2026级新生入学须知（待补充，非实际文件标题）",
@@ -30,6 +31,45 @@
       "file": null,
       "sha256": null,
       "status": "pending_verification"
+    },
+    {
+      "title": "河南科技职业大学2026年度信息公开工作报告",
+      "url": "https://www.hnvust.cn/info/1036/4151.htm",
+      "published_at": "2026-11-01",
+      "verified_at": "2026-11-14",
+      "downloaded_at": null,
+      "file": "information-disclosure-2026.txt",
+      "sha256": "ea71d11454405dba94af9e8fa13a3448616695a35458a6a23272831358945df5",
+      "effective_year": 2026,
+      "status": "verified_summary",
+      "document_kind": "disclosure_report",
+      "caveat": "依据学校官网工作报告整理。此条说明信息公开渠道；个人缴费与入学安排以当届通知为准。"
+    },
+    {
+      "title": "河南科技职业大学2026年新生收费标准公示",
+      "url": "https://caiwuchu.hnvust.cn/info/1065/1428.htm",
+      "published_at": "2026-08-02",
+      "verified_at": "2026-11-14",
+      "downloaded_at": null,
+      "file": "fees-2026.txt",
+      "sha256": "e48b88a048bd06833316ba943bb4e50187a0c544a7f04b49554a68d7fb60895b",
+      "effective_year": 2026,
+      "status": "verified_summary",
+      "document_kind": "fee_schedule",
+      "caveat": "根据财务处公示内嵌 PDF 整理。收费标准按专业和层次核对；缴费流程另查本届通知。"
+    },
+    {
+      "title": "我校2025级新生入学报到",
+      "url": "https://www.hnvust.cn/info/1035/3463.htm",
+      "published_at": "2025-09-15",
+      "verified_at": "2026-11-14",
+      "downloaded_at": null,
+      "file": "welcome-2025.txt",
+      "sha256": "51784aee46e45564903f85c95e3a793aba8ed271bf66a5afa8e65cbeb40b779e",
+      "effective_year": 2025,
+      "status": "verified_summary",
+      "document_kind": "welcome_report",
+      "caveat": "2025级迎新回顾，2026级安排待核实。"
     }
   ]
 }

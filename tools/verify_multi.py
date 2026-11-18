@@ -19,6 +19,7 @@ from backend.settings import Settings
 from backend.schools import load_schools, official_url
 from backend.search_service import SearchService, possible_conflicts, search_query, NoRedirect
 from backend.arrival import arrival_tasks
+from backend.official_notices import OfficialNotices
 from backend.campusmap import render_map
 from tools.migrate_legacy_data import migrate
 from backend.knowledge import school_chunks
@@ -61,6 +62,25 @@ class MultiHTTP(unittest.TestCase):
         self.assertEqual(self.request("POST", "/api/feedback", {"session": session, "answer": identity, "value": "helpful"}, "template-campus")[0], 400)
         self.request("DELETE", "/api/history", {"session": session}, "template-campus")
         self.assertEqual(len(self.request("GET", "/api/history?session=" + session)[1]["messages"]), 2)
+
+    def test_real_second_school_knowledge_maps_and_storage(self):
+        documents = self.request("GET", "/api/sources", school="haust")[1]["documents"]
+        charter = next(doc for doc in documents if doc["urls"] == ["https://zjc.haust.edu.cn/info/1133/35053.htm"])
+        self.assertEqual(charter["effective_year"], 2026)
+        self.assertEqual(charter["trust_label"], "依据官方正文整理")
+        schools = self.request("GET", "/api/schools", school="haust")[1]["schools"]
+        self.assertEqual(next(row for row in schools if row["school_id"] == "haust")["official_map"],
+                         "https://www.haust.edu.cn/xxgk/xydt.htm")
+        self.assertIn("暂无可核实地点", self.request("GET", "/campus-map.svg", school="haust")[1])
+        self.assertEqual(self.request("GET", "/campus3d/places.json", school="haust")[0], 400)
+        session = "real-school-isolation-01"
+        self.app.store.save(session, "user", "仅在河职大的历史")
+        self.assertEqual(self.request("GET", "/api/history?session=" + session, school="haust")[1]["messages"], [])
+        status, body = self.request("POST", "/api/ask", {"session": session, "question": "学校地址和校区在哪里？"}, "haust")
+        self.assertEqual(status, 200)
+        self.assertIn("开元大道263号", body)
+        self.assertNotIn("文昌大道", body)
+        self.assertEqual(len(self.request("GET", "/api/history?session=" + session)[1]["messages"]), 1)
 
     def test_unknown_traversal_and_conflicting_school_rejected(self):
         for school in ("../hnvust", "missing", "", "HNVUST"):
@@ -197,13 +217,104 @@ class SearchTests(unittest.TestCase):
             app = Application(Settings(data_dir=Path(directory)))
             barrier = threading.Barrier(2, timeout=3)
             base = {"id":"local", "text":"2024年9月1日 1000元", "caveat":"历史资料", "verified":False, "source":"历史", "effective_year":2024}
-            remote = {**base, "id":"remote", "text":"2026年9月1日 1500元", "effective_year":None, "evidence_origin":"search_api"}
+            remote = {**base, "id":"remote", "text":"2026年9月1日 1500元", "effective_year":2026, "evidence_origin":"official_article", "verified":True}
             def local(query): barrier.wait(); return [base]
             def web(query): barrier.wait(); return [remote], "ok"
             with patch.object(app.retriever, "search", side_effect=local), patch.object(app.answerer.search, "search", side_effect=web):
                 prepared = app.answerer.prepare("费用", [], "enhanced")
             self.assertTrue(prepared["web_used"]); self.assertEqual(len(prepared["sources"]), 2)
             self.assertTrue(prepared["conflicts"])
+
+    def test_official_search_reads_body_and_preserves_metadata(self):
+        service = SearchService(Settings(allow_search=True, search_provider="official"), self.school)
+        article = "https://www.hnvust.cn/info/123/456.htm"
+        body = """<time>2026年08月20日</time><nav>菜单假正文</nav>
+        <div id="vsb_content"><p>2026级新生报到日期和接待点安排请查阅个人通知书，
+        新生需要按学院要求核对身份信息及所需材料。</p><script>不应被提取</script></div>"""
+        def read(opener, url):
+            if url.endswith("robots.txt"):
+                return "User-agent: *\nAllow: /"
+            if url == article:
+                return body
+            return f'<a href="{article}">2026级新生报到安排通知</a>'
+        with patch("backend.official_notices.read_public", side_effect=read) as reader:
+            sources, status = service.search("2026级新生报到日期")
+            service.search("2026级新生报到日期")
+        self.assertEqual(status, "ok")
+        source = sources[0]
+        self.assertTrue(source["verified"])
+        self.assertEqual(source["effective_year"], 2026)
+        self.assertEqual(source["published_at"], "2026-08-20")
+        self.assertNotIn("不应被提取", source["text"])
+        self.assertNotIn("菜单", source["text"])
+        self.assertEqual(sum(call.args[1] == article for call in reader.call_args_list), 1)
+
+    def test_robots_disallow_leaves_link_and_never_reads_article(self):
+        url = "https://www.hnvust.cn/info/123/456.htm"
+        notices = OfficialNotices(self.school, None)
+        source = {"urls": [url], "source": "新生报到", "verified": False}
+        with patch("backend.official_notices.read_public", return_value="User-agent: *\nDisallow: /info/") as reader:
+            self.assertEqual(notices.verify(source, "报到"), source)
+        self.assertEqual(reader.call_args.args[1], "https://www.hnvust.cn/robots.txt")
+        reader.assert_called_once()
+
+    def test_enhanced_model_uses_only_verified_citations_and_falls_back(self):
+        with tempfile.TemporaryDirectory() as directory:
+            settings = Settings(allow_remote=True, api_key="mock-llm", data_dir=Path(directory))
+            app = Application(settings, school_id="haust")
+            article = {"id": "article", "text": "河南科技大学开元校区和西苑校区均有教学安排。",
+                       "source": "校区介绍", "source_type": "official_article", "effective_year": 2026,
+                       "verified": True, "caveat": "核对学校官网"}
+            snippet = {**article, "id": "snippet", "text": "不得发送的摘要内容", "verified": False,
+                       "source_type": "web_snippet"}
+            with patch.object(app.answerer.search, "search", return_value=([article, snippet], "ok")):
+                prepared = app.answerer.prepare("学校地址和校区在哪里？", [], "enhanced")
+            official_index = len(prepared["sources"]) - 1
+            candidate = f"学校设有开元校区和西苑校区。【{official_index}】"
+            def response(content):
+                return io.BytesIO(json.dumps({"choices": [{"message": {"content": content}}]}).encode())
+            with patch("urllib.request.OpenerDirector.open", return_value=response(candidate)) as remote:
+                answer, mode = app.answerer.generate("", prepared)
+                request = json.loads(remote.call_args.args[0].data)
+            self.assertEqual(mode, "remote_llm")
+            self.assertIn(candidate, answer)
+            self.assertIn("开元大道263号", request["messages"][-1]["content"])
+            self.assertNotIn(snippet["text"], request["messages"][-1]["content"])
+            with patch("urllib.request.OpenerDirector.open", return_value=response(f"宿舍费88888元。【{official_index}】")):
+                answer, mode = app.answerer.generate("", prepared)
+            self.assertEqual(mode, "local_evidence")
+            self.assertNotIn("88888", answer)
+
+    def test_explicit_cohort_does_not_use_admissions_charter_as_arrival_notice(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = Application(Settings(data_dir=Path(directory)))
+            prepared = app.answerer.prepare("2026级报到时间是几号？", [], "enhanced")
+            answer, mode = app.answerer.generate("", prepared)
+        self.assertEqual(mode, "local_evidence")
+        self.assertNotIn("2024", answer)
+        self.assertIn("官网", answer)
+
+    def test_arrival_cohort_filters_old_material_and_keeps_school_citations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = Application(Settings(data_dir=Path(directory)))
+            prepared = app.answerer.prepare("2026级新生报到需要带哪些材料？接站时间在哪？", [])
+            answer, _ = app.answerer.generate("", prepared)
+            self.assertIsNone(prepared["guided_arrival"])
+            self.assertIn("待核实", answer)
+            self.assertNotIn("2024", answer)
+            self.assertNotIn("9月13日至14日", answer)
+            fee = app.answerer.prepare("2026年新生收费标准怎么查？", [])
+            fee_answer, _ = app.answerer.generate("", fee)
+            self.assertEqual(fee["sources"][0]["urls"], ["https://caiwuchu.hnvust.cn/info/1065/1428.htm"])
+            self.assertIn("17000", fee_answer)
+
+            haust = app.for_school("haust").answerer
+            prepared = haust.prepare("2026级新生报到和接站怎么安排？", [])
+            answer, _ = haust.generate("", prepared)
+            self.assertIn("开元、西苑", answer)
+            self.assertTrue(any("wbnewsid=344251" in url for source in prepared["sources"] for url in source["urls"]))
+            self.assertTrue(all(source["school_id"] == "haust" for source in prepared["sources"]))
+            self.assertNotIn("文昌大道", answer)
 
     def test_official_domain_validation_rejects_userinfo_suffix_and_ports(self):
         for url in ("http://hnvust.cn/a", "https://hnvust.cn.evil/a", "https://evilhnvust.cn/a", "https://hnvust.cn:444/a", "https://user@hnvust.cn/a"):
